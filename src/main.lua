@@ -158,7 +158,26 @@ function Balatest.run_test(test, count)
                 deck = test.deck
             }
         }
-        G.FUNCS.start_run({ config = { id = 'restart_button' } }, args)
+
+
+        G.SETTINGS.paused = true
+        G.GAME.viewed_back = nil
+        G.E_MANAGER:clear_queue()
+        G.E_MANAGER:add_event(Event({
+          no_delete = true,
+          func = function()
+            G:delete_run()
+            return true
+          end
+        }))
+        G.E_MANAGER:add_event(Event({
+          trigger = 'immediate',
+          no_delete = true,
+          func = function()
+            G:start_run(args)
+            return true
+          end
+        }))
         Balatest.start_round()
 
         Balatest.q(function()
