@@ -20,8 +20,8 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.cash_out()` cashes out the round evaluation screen.
 - `Balatest.exit_shop()` exits the shop.
 - `Balatest.start_round()` selects the next blind.
-- `Balatest.play_hand { '2S', '10H' }` plays those cards.
-- `Balatest.discard { 'Ts', 'Qc' }` discards those cards.
+- `Balatest.play_hand { '2S', '10H' }` plays those cards. Note that this fails if the cards are not in hand.
+- `Balatest.discard { 'Ts', 'Qc' }` discards those cards. Note that this fails if the cards are not in hand.
 
 ### `test.assert`
 
@@ -43,6 +43,24 @@ Balatest.TestPlay {
     end
 }
 ```
+
+## Default Values
+
+Balatest will run each test with the following defaults:
+- `back = 'Red Deck'`
+- `stake = 1`
+- `seed = nil`
+- `jokers = {}`
+- `consumeables = {}`
+- `vouchers = {}`
+- `dollars = 0` (Starting money)
+- `discards = 999`
+- `hands = 999`
+- `hand_size = 52`
+- `modifiers = {}` (`challenge.rules.modifiers`)
+- `custom = {}` (`challenge.rules.custom`)
+- `deck = nil`
+- `blind = 'bl_small'`
 
 # Advanced Features
 
