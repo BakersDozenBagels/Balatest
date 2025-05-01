@@ -7,7 +7,7 @@ priority = 0
 target = 'functions/common_events.lua'
 pattern = '''        trigger = 'before',
         delay = delay,'''
-position = 'at'
+position = 'after'
 match_indent = true
 times = 1
 payload = '''
