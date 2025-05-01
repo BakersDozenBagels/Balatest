@@ -59,6 +59,8 @@ function Balatest.run_tests(mod, category)
         end
     end
 
+    local prev_speed = G.SETTINGS.GAMESPEED
+    G.SETTINGS.GAMESPEED = 65536
     sendInfoMessage('Running ' .. #todo .. ' tests...', 'Balatest')
     for _, v in ipairs(todo) do
         Balatest.run_test(Balatest.tests[v])
@@ -79,6 +81,7 @@ function Balatest.run_tests(mod, category)
             end
             sendInfoMessage(Balatest.done_count .. ' tests ran.', 'Balatest')
             sendInfoMessage(pass .. ' succeeded, ' .. fail .. ' failed.', 'Balatest')
+            G.SETTINGS.GAMESPEED = prev_speed
             return true
         end
     })
@@ -158,7 +161,6 @@ function Balatest.run_test(test, count)
                 deck = test.deck
             }
         }
-
 
         G.SETTINGS.paused = true
         G.GAME.viewed_back = nil

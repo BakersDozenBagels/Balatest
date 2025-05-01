@@ -11,8 +11,6 @@ position = 'at'
 match_indent = true
 times = 1
 payload = '''
-trigger =  Balatest.current_test ~= nil and 'immediate' or 'before',
-delay =  Balatest.current_test ~= nil and 0 or delay,
-blocking = Balatest.current_test ~= nil,
-blockable = Balatest.current_test ~= nil,
+blocking = Balatest.current_test == nil,
+-- blockable = Balatest.current_test == nil,
 '''
