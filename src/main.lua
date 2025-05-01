@@ -9,10 +9,6 @@ Balatest.done_count = 0
 Balatest.current_test = nil
 Balatest.current_test_object = nil
 
-function t()
-    Balatest.run_tests()
-end
-
 G.E_MANAGER.queues.Balatest = {}
 G.E_MANAGER.queues.Balatest_Run = {}
 local function tq(f)
