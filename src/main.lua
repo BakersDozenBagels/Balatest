@@ -1,0 +1,370 @@
+Balatest = {}
+
+Balatest.tests = {}
+Balatest.tests_by_mod = {}
+Balatest.tests_by_mod_and_category = {}
+Balatest.test_order = {}
+Balatest.done = {}
+Balatest.done_count = 0
+Balatest.current_test = nil
+
+function t()
+    Balatest.run_tests()
+end
+
+G.E_MANAGER.queues.Balatest = {}
+G.E_MANAGER.queues.Balatest_Run = {}
+local function tq(f)
+    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f } or f, 'Balatest')
+end
+function Balatest.q(f)
+    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f } or f, 'Balatest_Run')
+end
+
+local function wait_for_input(state)
+    Balatest.q(function()
+        if abort then return true end
+        return abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
+            not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
+    end)
+end
+
+function Balatest.TestPlay(settings)
+    local mod = SMODS.current_mod and SMODS.current_mod.id or ''
+    settings.name = ((SMODS.current_mod and mod .. '_') or '') ..
+        (settings.name or ('unnamed_' .. (#Balatest.tests + 1)))
+    local req = {}
+    for k, v in pairs(settings.requires or {}) do
+        req[k] = (SMODS.current_mod and mod .. '_' or '') .. v
+    end
+    settings.requires = req
+    settings.category = settings.category or ''
+    Balatest.tests[settings.name] = settings
+    Balatest.tests_by_mod[mod] = Balatest.tests_by_mod[mod] or {}
+    Balatest.tests_by_mod[mod][settings.name] = true
+    Balatest.tests_by_mod_and_category[mod] = Balatest.tests_by_mod_and_category[mod] or {}
+    Balatest.tests_by_mod_and_category[mod][settings.category] = Balatest.tests_by_mod_and_category[mod]
+        [settings.category] or {}
+    Balatest.tests_by_mod_and_category[mod][settings.category][settings.name] = true
+    Balatest.test_order[#Balatest.test_order + 1] = settings.name
+end
+
+function Balatest.run_tests(mod, category)
+    local todo = {}
+    local allowed = category and Balatest.tests_by_mod_and_category[mod][category] or mod and Balatest.tests_by_mod[mod] or
+        nil
+
+    if not allowed then
+        todo = Balatest.test_order
+    else
+        for _, v in ipairs(Balatest.test_order) do
+            if allowed[v] then todo[#todo + 1] = v end
+        end
+    end
+
+    sendInfoMessage('Running ' .. #todo .. ' tests...', 'Balatest')
+    for _, v in ipairs(todo) do
+        Balatest.run_test(Balatest.tests[v])
+    end
+    tq(Event {
+        blocking = false,
+        no_delete = true,
+        func = function()
+            if Balatest.done_count ~= #todo then return false end
+
+            local pass, fail = 0, 0
+            for _, v in pairs(Balatest.done) do
+                if v.success then
+                    pass = pass + 1
+                else
+                    fail = fail + 1
+                end
+            end
+            sendInfoMessage(Balatest.done_count .. ' tests ran.', 'Balatest')
+            sendInfoMessage(pass .. ' succeeded, ' .. fail .. ' failed.', 'Balatest')
+            return true
+        end
+    })
+end
+
+local abort
+function Balatest.run_test(test, count)
+    if type(test) == 'string' then test = Balatest.tests[test] end
+    if test == nil then
+        sendWarnMessage('That test does not exist.', 'Balatest')
+        return
+    end
+    local test_done = false
+    local pre_fail = false
+    tq(function()
+        abort = nil
+        for _, v in pairs(test.requires or {}) do
+            if not Balatest.done[v] then
+                pre_fail = true
+                break
+            end
+            if not Balatest.done[v].success then
+                abort = 'Required test ' .. v .. ' failed'
+                return true
+            end
+        end
+        if pre_fail then
+            if count == Balatest.done_count then
+                abort = 'Tests stalled'
+            else
+                Balatest.run_test(test, Balatest.done_count)
+            end
+            return true
+        end
+
+        Balatest.current_test = test.name
+
+        local function fix_jokers(j)
+            local res = {}
+            for k, v in ipairs(j) do
+                if type(v) == 'string' then
+                    res[k] = { id = v }
+                else
+                    res[k] = v
+                end
+            end
+            return res
+        end
+
+        local args = {
+            deck = { name = test.back or 'Red Deck' },
+            stake = test.stake,
+            seed = test.seed,
+            challenge = {
+                id = 'Balatest_Test_Runner',
+                jokers = fix_jokers(test.jokers or {}),
+                consumeables = test.consumeables,
+                vouchers = test.vouchers,
+                rules = {
+                    modifiers = {
+                        { id = 'dollars',   value = test.dollars or 0 },
+                        { id = 'discards',  value = test.discards or 999 },
+                        { id = 'hands',     value = test.hands or 999 },
+                        { id = 'hand_size', value = test.hand_size or 52 },
+                        unpack(test.modifiers or {})
+                    },
+                    custom = {
+                        { id = 'no_reward' },
+                        { id = 'no_interest' },
+                        { id = 'no_extra_hand_money' },
+                        { id = 'money_per_discard',  value = 0 },
+                        unpack(test.custom_rules or {})
+                    }
+                },
+                deck = test.deck
+            }
+        }
+        G.FUNCS.start_run({ config = { id = 'restart_button' } }, args)
+        Balatest.start_round()
+
+        Balatest.q(function()
+            local r, e = pcall(test.execute)
+            if not r and not Balatest.done[test.name] then abort = e or true end
+            return true
+        end)
+
+        Balatest.q(function()
+            if abort then return true end
+            Balatest.q(function()
+                if abort then return true end
+                if not Balatest.done[test.name] then
+                    local r, e = pcall(test.assert)
+                    if not r then
+                        Balatest.done[test.name] = { success = false, reason = e }
+                        Balatest.done_count = Balatest.done_count + 1
+                    else
+                        Balatest.done[test.name] = { success = true }
+                        Balatest.done_count = Balatest.done_count + 1
+                    end
+                end
+                sendInfoMessage(
+                    'Test ' ..
+                    test.name ..
+                    (Balatest.done[test.name].success and ' passed.' or (' failed with: ' .. Balatest.done[test.name].reason)),
+                    'Balatest')
+                test_done = true
+                return true
+            end)
+            return true
+        end)
+
+        return true
+    end)
+    tq(function()
+        return abort or test_done or pre_fail
+    end)
+    tq(function()
+        if pre_fail and not abort then return true end
+        if abort and not Balatest.done[test.name] then
+            Balatest.done[test.name] = { success = false, reason = type(abort) == 'string' and abort or 'Aborted' }
+            Balatest.done_count = Balatest.done_count + 1
+        elseif not Balatest.done[test.name] then
+            Balatest.done[test.name] = { success = false, reason = 'Unknown' }
+            Balatest.done_count = Balatest.done_count + 1
+        end
+        Balatest.current_test = nil
+        return true
+    end)
+end
+
+function Balatest.start_round()
+    wait_for_input(G.STATES.BLIND_SELECT)
+    Balatest.q(function()
+        if abort then return true end
+        G.FUNCS.select_blind { config = { ref_table = G.P_BLINDS[Balatest.tests[Balatest.current_test].blind or 'bl_small'] } }
+        return true
+    end)
+    wait_for_input(G.STATES.SELECTING_HAND)
+    -- local done = false
+    -- Balatest.q(function()
+    --     if abort then return true end
+    --     local count = #G.deck.cards
+    --     for i = 1, count do
+    --         draw_card(G.deck, G.hand, i * 100 / count, 'up', true)
+    --     end
+    --     G.E_MANAGER:add_event(Event { func = function()
+    --         done = true
+    --         return true
+    --     end })
+    --     return true
+    -- end)
+    -- Balatest.q(function()
+    --     return abort or done
+    -- end)
+end
+
+function Balatest.end_round()
+    wait_for_input()
+    Balatest.q(function()
+        if abort then return true end
+        G.GAME.chips = G.GAME.blind.chips
+        G.STATE = G.STATES.NEW_ROUND
+        G.STATE_COMPLETE = false
+        return true
+    end)
+    wait_for_input(G.STATES.ROUND_EVAL)
+end
+
+function Balatest.cash_out()
+    Balatest.q(function()
+        if abort then return true end
+        G.FUNCS.cash_out { config = {} }
+        return true
+    end)
+    wait_for_input()
+end
+
+function Balatest.exit_shop()
+    Balatest.q(function()
+        if abort then return true end
+        G.FUNCS.toggle_shop()
+        return true
+    end)
+end
+
+function Balatest.next_round()
+    Balatest.end_round()
+    Balatest.cash_out()
+    Balatest.exit_shop()
+    Balatest.start_round()
+end
+
+local suits = {
+    s = 'Spades',
+    S = 'Spades',
+    h = 'Hearts',
+    H = 'Hearts',
+    c = 'Clubs',
+    C = 'Clubs',
+    d = 'Diamonds',
+    D = 'Diamonds',
+}
+
+local ranks = {
+    ['2'] = '2',
+    ['3'] = '3',
+    ['4'] = '4',
+    ['5'] = '5',
+    ['6'] = '6',
+    ['7'] = '7',
+    ['8'] = '8',
+    ['9'] = '9',
+    ['10'] = '10',
+    ['T'] = '10',
+    ['t'] = '10',
+    ['J'] = 'Jack',
+    ['j'] = 'Jack',
+    ['Q'] = 'Queen',
+    ['q'] = 'Queen',
+    ['K'] = 'King',
+    ['k'] = 'King',
+    ['A'] = 'Ace',
+    ['a'] = 'Ace',
+    ['1'] = 'Ace',
+}
+
+local function select(cards)
+    if abort then return end
+    local used = {}
+    local used_t = {}
+    for _, v in ipairs(cards) do
+        local rank = ranks[v:sub(1, -2)]
+        local suit = suits[v:sub(-1)]
+        local bad = true
+        for _, v in pairs(G.hand.cards) do
+            if v.base.suit == suit and v.base.value == rank and not used_t[v] then
+                used_t[v] = true
+                used[#used + 1] = v
+                G.hand:add_to_highlighted(v, true)
+                v.T.x = #used
+                bad = false
+                break
+            end
+        end
+        if bad then
+            abort = 'A card (' .. v .. ') was not in hand, but it needed to be played.'
+        end
+    end
+end
+
+function Balatest.play_hand(cards)
+    Balatest.q(function()
+        select(cards)
+        if abort then return true end
+        G.FUNCS.play_cards_from_highlighted()
+        return true
+    end)
+    wait_for_input()
+end
+
+function Balatest.discard(cards)
+    Balatest.q(function()
+        select(cards)
+        if abort then return true end
+        G.FUNCS.discard_cards_from_highlighted()
+        return true
+    end)
+    wait_for_input(G.STATES.SELECTING_HAND)
+end
+
+function Balatest.assert(bool, message)
+    assert(bool, message or 'An assertion failed!')
+end
+
+function Balatest.assert_eq(a, b, message)
+    if to_big then
+        assert(to_big(a):eq(b), message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)))
+    else
+        assert(a == b, message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)))
+    end
+end
+
+function Balatest.assert_chips(val, message)
+    Balatest.assert_eq(G.GAME.chips, val,
+        message or ('Expected ' .. tostring(val) .. ' total round chips, got ' .. tostring(G.GAME.chips)))
+end

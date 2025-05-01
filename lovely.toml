@@ -1,0 +1,18 @@
+[manifest]
+version = "1.0.0"
+priority = 0
+
+[[patches]]
+[patches.pattern]
+target = 'functions/common_events.lua'
+pattern = '''        trigger = 'before',
+        delay = delay,'''
+position = 'at'
+match_indent = true
+times = 1
+payload = '''
+trigger =  Balatest.current_test ~= nil and 'immediate' or 'before',
+delay =  Balatest.current_test ~= nil and 0 or delay,
+blocking = Balatest.current_test ~= nil,
+blockable = Balatest.current_test ~= nil,
+'''
