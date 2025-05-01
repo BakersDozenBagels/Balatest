@@ -7,6 +7,7 @@ Balatest.test_order = {}
 Balatest.done = {}
 Balatest.done_count = 0
 Balatest.current_test = nil
+Balatest.current_test_object = nil
 
 function t()
     Balatest.run_tests()
@@ -94,6 +95,7 @@ function Balatest.run_test(test, count)
         sendWarnMessage('That test does not exist.', 'Balatest')
         return
     end
+    if not test.name then test.name = 'temporary' end
     local test_done = false
     local pre_fail = false
     tq(function()
@@ -118,6 +120,7 @@ function Balatest.run_test(test, count)
         end
 
         Balatest.current_test = test.name
+        Balatest.current_test_object = test
 
         local function fix_jokers(j)
             local res = {}
@@ -208,6 +211,7 @@ function Balatest.run_test(test, count)
             Balatest.done_count = Balatest.done_count + 1
         end
         Balatest.current_test = nil
+        Balatest.current_test_object = nil
         return true
     end)
 end
@@ -216,7 +220,7 @@ function Balatest.start_round()
     wait_for_input(G.STATES.BLIND_SELECT)
     Balatest.q(function()
         if abort then return true end
-        G.FUNCS.select_blind { config = { ref_table = G.P_BLINDS[Balatest.tests[Balatest.current_test].blind or 'bl_small'] } }
+        G.FUNCS.select_blind { config = { ref_table = G.P_BLINDS[Balatest.current_test_object.blind or 'bl_small'] } }
         return true
     end)
     wait_for_input(G.STATES.SELECTING_HAND)
