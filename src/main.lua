@@ -12,15 +12,17 @@ Balatest.current_test_object = nil
 G.E_MANAGER.queues.Balatest = {}
 G.E_MANAGER.queues.Balatest_Run = {}
 local function tq(f)
-    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f } or f, 'Balatest')
+    local f2 = function() return f() ~= false end
+    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest')
 end
 function Balatest.q(f)
-    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f } or f, 'Balatest_Run')
+    local f2 = function() return f() ~= false end
+    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest_Run')
 end
 
 local function wait_for_input(state)
     Balatest.q(function()
-        if abort then return true end
+        if abort then return end
         return abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
             not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
     end)
@@ -106,7 +108,7 @@ function Balatest.run_test(test, count)
             end
             if not Balatest.done[v].success then
                 abort = 'Required test ' .. v .. ' failed'
-                return true
+                return
             end
         end
         if pre_fail then
@@ -115,7 +117,7 @@ function Balatest.run_test(test, count)
             else
                 Balatest.run_test(test, Balatest.done_count)
             end
-            return true
+            return
         end
 
         Balatest.current_test = test.name
@@ -165,33 +167,25 @@ function Balatest.run_test(test, count)
         G.SETTINGS.paused = true
         G.GAME.viewed_back = nil
         G.E_MANAGER:clear_queue()
-        G.E_MANAGER:add_event(Event({
-          no_delete = true,
-          func = function()
-            G:delete_run()
-            return true
-          end
-        }))
-        G.E_MANAGER:add_event(Event({
-          trigger = 'immediate',
-          no_delete = true,
-          func = function()
-            G:start_run(args)
-            return true
-          end
-        }))
+        G.E_MANAGER:add_event(Event {
+            no_delete = true,
+            func = function() G:delete_run() return true end
+        })
+        G.E_MANAGER:add_event(Event {
+            no_delete = true,
+            func = function() G:start_run(args) return true end
+        })
         Balatest.start_round()
 
         Balatest.q(function()
             local r, e = pcall(test.execute)
             if not r and not Balatest.done[test.name] then abort = e or true end
-            return true
         end)
 
         Balatest.q(function()
-            if abort then return true end
+            if abort then return end
             Balatest.q(function()
-                if abort then return true end
+                if abort then return end
                 if not Balatest.done[test.name] then
                     local r, e = pcall(test.assert)
                     if not r then
@@ -208,18 +202,14 @@ function Balatest.run_test(test, count)
                     (Balatest.done[test.name].success and ' passed.' or (' failed with: ' .. Balatest.done[test.name].reason)),
                     'Balatest')
                 test_done = true
-                return true
             end)
-            return true
         end)
-
-        return true
     end)
     tq(function()
         return abort or test_done or pre_fail
     end)
     tq(function()
-        if pre_fail and not abort then return true end
+        if pre_fail and not abort then return end
         if abort and not Balatest.done[test.name] then
             Balatest.done[test.name] = { success = false, reason = type(abort) == 'string' and abort or 'Aborted' }
             Balatest.done_count = Balatest.done_count + 1
@@ -229,16 +219,14 @@ function Balatest.run_test(test, count)
         end
         Balatest.current_test = nil
         Balatest.current_test_object = nil
-        return true
     end)
 end
 
 function Balatest.start_round()
     wait_for_input(G.STATES.BLIND_SELECT)
     Balatest.q(function()
-        if abort then return true end
+        if abort then return end
         G.FUNCS.select_blind { config = { ref_table = G.P_BLINDS[Balatest.current_test_object.blind or 'bl_small'] } }
-        return true
     end)
     wait_for_input(G.STATES.SELECTING_HAND)
     -- local done = false
@@ -262,29 +250,26 @@ end
 function Balatest.end_round()
     wait_for_input()
     Balatest.q(function()
-        if abort then return true end
+        if abort then return end
         G.GAME.chips = G.GAME.blind.chips
         G.STATE = G.STATES.NEW_ROUND
         G.STATE_COMPLETE = false
-        return true
     end)
     wait_for_input(G.STATES.ROUND_EVAL)
 end
 
 function Balatest.cash_out()
     Balatest.q(function()
-        if abort then return true end
+        if abort then return end
         G.FUNCS.cash_out { config = {} }
-        return true
     end)
     wait_for_input()
 end
 
 function Balatest.exit_shop()
     Balatest.q(function()
-        if abort then return true end
+        if abort then return end
         G.FUNCS.toggle_shop()
-        return true
     end)
 end
 
@@ -356,9 +341,8 @@ end
 function Balatest.play_hand(cards)
     Balatest.q(function()
         select(cards)
-        if abort then return true end
+        if abort then return end
         G.FUNCS.play_cards_from_highlighted()
-        return true
     end)
     wait_for_input()
 end
@@ -366,9 +350,8 @@ end
 function Balatest.discard(cards)
     Balatest.q(function()
         select(cards)
-        if abort then return true end
+        if abort then return end
         G.FUNCS.discard_cards_from_highlighted()
-        return true
     end)
     wait_for_input(G.STATES.SELECTING_HAND)
 end

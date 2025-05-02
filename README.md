@@ -10,9 +10,9 @@ First, register some unit tests with `Balatest.TestPlay` (see below). Then, to r
 
 A test in Balatest is fundamentally a [challenge](https://github.com/Steamodded/smods/wiki/SMODS.Challenge). Many of the keys in a challenge will also work in a test. Balatest will automatically begin the challenge and navigate to the Small Blind (note that every blind is Small by default). From there, `test.execute()` is called, where you will play, discard, navigate rounds, etc. Finally, `test.assert()` is called to evaluate the results of the test.
 
-### `test.execute()`
+### `execute`
 
-Here you will put some actions in a queue to set up the test. Note that this queue is *not* the default one; use `Balatest.q()` to add to it (`q` accepts bare functions as well as `Event`s for added convenience).
+Here you will put some actions in a queue to set up the test. Note that this queue is *not* the default one; use `Balatest.q()` to add to it (`q` accepts bare functions as well as `Event`s for added convenience. Additionally, it will automatically `return true` for you unless you explicitly `return false`.).
 
 Balatest also provides some pre-built events for you (each of these adds to the queue for you):
 - `Balatest.next_round()` ends the round and navigates to the next one.
@@ -23,7 +23,7 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.play_hand { '2S', '10H' }` plays those cards. Note that this fails if the cards are not in hand.
 - `Balatest.discard { 'Ts', 'Qc' }` discards those cards. Note that this fails if the cards are not in hand.
 
-### `test.assert`
+### `assert`
 
 Here you will write some assertions on the final state of the test. Balatest provides a few helpers for this:
 - `Balatest.assert(bool, message?)` is a bare assertion.
