@@ -142,8 +142,8 @@ function Balatest.run_test(test, count)
             challenge = {
                 id = 'Balatest_Test_Runner',
                 jokers = fix_jokers(test.jokers or {}),
-                consumeables = test.consumeables,
-                vouchers = test.vouchers,
+                consumeables = fix_jokers(test.consumeables or {}),
+                vouchers = fix_jokers(test.vouchers or {}),
                 rules = {
                     modifiers = {
                         { id = 'dollars',   value = test.dollars or 0 },
@@ -169,11 +169,17 @@ function Balatest.run_test(test, count)
         G.E_MANAGER:clear_queue()
         G.E_MANAGER:add_event(Event {
             no_delete = true,
-            func = function() G:delete_run() return true end
+            func = function()
+                G:delete_run()
+                return true
+            end
         })
         G.E_MANAGER:add_event(Event {
             no_delete = true,
-            func = function() G:start_run(args) return true end
+            func = function()
+                G:start_run(args)
+                return true
+            end
         })
         Balatest.start_round()
 
@@ -317,18 +323,13 @@ local ranks = {
 local function select(cards)
     if abort then return end
     local used = {}
-    local used_t = {}
     for _, v in ipairs(cards) do
         local rank = ranks[v:sub(1, -2)]
         local suit = suits[v:sub(-1)]
         local bad = true
-        for _, v in pairs(G.hand.cards) do
-            if v.base.suit == suit and v.base.value == rank and not used_t[v] then
-                used_t[v] = true
-                used[#used + 1] = v
-                G.hand:add_to_highlighted(v, true)
-                v.T.x = #used
-                bad = false
+        for k, v in pairs(G.hand.cards) do
+            if v.base.suit == suit and v.base.value == rank then
+                used[#used + 1] = table.remove(G.hand.cards, k)
                 break
             end
         end
@@ -336,6 +337,11 @@ local function select(cards)
             abort = 'A card (' .. v .. ') was not in hand, but it needed to be played.'
         end
     end
+    for k, v in ipairs(used) do
+        G.hand.cards[#G.hand.cards + 1] = v
+        G.hand:add_to_highlighted(v, true)
+    end
+    G.hand:align_cards()
 end
 
 function Balatest.play_hand(cards)
@@ -352,6 +358,27 @@ function Balatest.discard(cards)
         select(cards)
         if abort then return end
         G.FUNCS.discard_cards_from_highlighted()
+    end)
+    wait_for_input(G.STATES.SELECTING_HAND)
+end
+
+function Balatest.highlight(cards)
+    Balatest.q(function()
+        select(cards)
+    end)
+    wait_for_input(G.STATES.SELECTING_HAND)
+end
+
+function Balatest.unhighlight_all()
+    Balatest.q(function()
+        G.hand:unhighlight_all()
+    end)
+    wait_for_input(G.STATES.SELECTING_HAND)
+end
+
+function Balatest.use(card)
+    Balatest.q(function()
+        G.FUNCS.use_card { config = { ref_table = card } }
     end)
     wait_for_input(G.STATES.SELECTING_HAND)
 end

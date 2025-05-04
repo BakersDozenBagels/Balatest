@@ -20,8 +20,11 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.cash_out()` cashes out the round evaluation screen.
 - `Balatest.exit_shop()` exits the shop.
 - `Balatest.start_round()` selects the next blind.
-- `Balatest.play_hand { '2S', '10H' }` plays those cards. Note that this fails if the cards are not in hand.
+- `Balatest.play_hand { '2S', '10H' }` plays those cards in that order. Note that this fails if the cards are not in hand.
 - `Balatest.discard { 'Ts', 'Qc' }` discards those cards. Note that this fails if the cards are not in hand.
+- `Balatest.highlight { '2S', '10H' }` highlights those cards in that order. Note that this fails if the cards are not in hand.
+- `Balatest.unhighlight_all()` unhighlights the hand.
+- `Balatest.use(card)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])`
 
 ### `assert`
 
@@ -77,7 +80,6 @@ Balatest will run each test with the following defaults:
 # Current Limitations
 
 Currently, it's quite annoying to write tests using any of the following:
-- Using a consumable
 - Tags
 - Skipping Blinds
 - Anything in the shop
