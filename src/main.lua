@@ -327,9 +327,10 @@ local function select(cards)
         local rank = ranks[v:sub(1, -2)]
         local suit = suits[v:sub(-1)]
         local bad = true
-        for k, v in pairs(G.hand.cards) do
+        for k, v in ipairs(G.hand.cards) do
             if v.base.suit == suit and v.base.value == rank then
                 used[#used + 1] = table.remove(G.hand.cards, k)
+                bad = false
                 break
             end
         end
@@ -366,36 +367,38 @@ function Balatest.highlight(cards)
     Balatest.q(function()
         select(cards)
     end)
-    wait_for_input(G.STATES.SELECTING_HAND)
+    wait_for_input()
 end
 
 function Balatest.unhighlight_all()
     Balatest.q(function()
         G.hand:unhighlight_all()
     end)
-    wait_for_input(G.STATES.SELECTING_HAND)
+    wait_for_input()
 end
 
 function Balatest.use(card)
     Balatest.q(function()
         G.FUNCS.use_card { config = { ref_table = card } }
     end)
-    wait_for_input(G.STATES.SELECTING_HAND)
+    wait_for_input()
 end
 
-function Balatest.assert(bool, message)
-    assert(bool, message or 'An assertion failed!')
+function Balatest.assert(bool, message, level)
+    if not bool then error(message or 'An assertion failed!', level or 2) end
 end
 
-function Balatest.assert_eq(a, b, message)
+function Balatest.assert_eq(a, b, message, level)
     if to_big then
-        assert(to_big(a):eq(b), message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)))
+        Balatest.assert(to_big(a):eq(b), message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)),
+            (level or 2) + 1)
     else
-        assert(a == b, message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)))
+        Balatest.assert(a == b, message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)), (level or 2) + 1)
     end
 end
 
-function Balatest.assert_chips(val, message)
+function Balatest.assert_chips(val, message, level)
     Balatest.assert_eq(G.GAME.chips, val,
-        message or ('Expected ' .. tostring(val) .. ' total round chips, got ' .. tostring(G.GAME.chips)))
+    message or ('Expected ' .. tostring(val) .. ' total round chips, got ' .. tostring(G.GAME.chips)),
+        (level or 2) + 1)
 end
