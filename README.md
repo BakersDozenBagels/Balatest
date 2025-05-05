@@ -12,7 +12,7 @@ A test in Balatest is fundamentally a [challenge](https://github.com/Steamodded/
 
 ### `execute`
 
-Here you will put some actions in a queue to set up the test. Note that this queue is *not* the default one; use `Balatest.q()` to add to it (`q` accepts bare functions as well as `Event`s for added convenience. Additionally, it will automatically `return true` for you unless you explicitly `return false`.).
+Here you will put some actions in a queue to set up the test. Note that this queue is *not* the default one; use `Balatest.q()` to add to it (`q` accepts bare functions as well as `Event`s for added convenience. Additionally, it will automatically `return true` for you unless you explicitly `return false`).
 
 Balatest also provides some pre-built events for you (each of these adds to the queue for you):
 - `Balatest.next_round()` ends the round and navigates to the next one.
@@ -24,7 +24,7 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.discard { 'Ts', 'Qc' }` discards those cards. Note that this fails if the cards are not in hand.
 - `Balatest.highlight { '2S', '10H' }` highlights those cards in that order. Note that this fails if the cards are not in hand.
 - `Balatest.unhighlight_all()` unhighlights the hand.
-- `Balatest.use(card)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])`
+- `Balatest.use(card, instant)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])`
 - `Balatest.hook(obj, name, func)` hooks a function until the test concludes. See below for more information.
 
 ### `assert`

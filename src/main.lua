@@ -12,20 +12,20 @@ Balatest.hook_count = 0
 
 G.E_MANAGER.queues.Balatest = {}
 G.E_MANAGER.queues.Balatest_Run = {}
-local function tq(f)
+local function tq(f, front)
     local f2 = function() return f() ~= false end
-    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest')
+    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest', front)
 end
-function Balatest.q(f)
+function Balatest.q(f, front)
     local f2 = function() return f() ~= false end
-    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest_Run')
+    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest_Run', front)
 end
 
-local function wait_for_input(state)
+local function wait_for_input(state, front)
     Balatest.q(function()
         return Balatest.abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
             not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
-    end)
+    end, front)
 end
 
 function Balatest.TestPlay(settings)
@@ -382,11 +382,15 @@ function Balatest.unhighlight_all()
     wait_for_input()
 end
 
-function Balatest.use(card)
-    Balatest.q(function()
+function Balatest.use(card, instant)
+    if instant then
         G.FUNCS.use_card { config = { ref_table = card } }
-    end)
-    wait_for_input()
+    else
+        Balatest.q(function()
+            G.FUNCS.use_card { config = { ref_table = card } }
+        end)
+    end
+    wait_for_input(nil, instant)
 end
 
 local hooks = setmetatable({}, { __mode = 'k' })
