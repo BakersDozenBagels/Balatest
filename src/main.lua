@@ -27,6 +27,7 @@ local function wait_for_input(state, front)
             not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
     end, front)
 end
+Balatest.wait_for_input = wait_for_input
 
 function Balatest.TestPlay(settings)
     local mod = SMODS.current_mod and SMODS.current_mod.id or ''
@@ -395,13 +396,25 @@ end
 
 function Balatest.use(card, instant)
     if instant then
+        if instant ~= 1 then
+            sendWarnMessage(
+                'Instant mode on Balatest.use can cause unintuitive behavior; you likely want to pass a function instead. Suppress this warning by setting instant to 1.',
+                'Balatest')
+        end
         G.FUNCS.use_card { config = { ref_table = card } }
     else
         Balatest.q(function()
-            G.FUNCS.use_card { config = { ref_table = card } }
+            G.FUNCS.use_card { config = { ref_table = type(card) == 'function' and card() or card } }
         end)
     end
     wait_for_input(nil, instant)
+end
+
+function Balatest.buy(func)
+    Balatest.q(function()
+        G.FUNCS.buy_from_shop { config = { ref_table = func() } }
+    end)
+    wait_for_input()
 end
 
 local hooks = setmetatable({}, { __mode = 'k' })
@@ -459,7 +472,7 @@ function Balatest.assert_neq(a, b, message, level)
             (level or 2) + 1)
     else
         Balatest.assert(a ~= b, message or ('Expected ' .. tostring(a) .. ' to differ from ' .. tostring(b)),
-        (level or 2) + 1)
+            (level or 2) + 1)
     end
 end
 

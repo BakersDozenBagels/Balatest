@@ -25,7 +25,8 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.discard { 'Ts', 'Qc' }` discards those cards. Note that this fails if the cards are not in hand.
 - `Balatest.highlight { '2S', '10H' }` highlights those cards in that order. Note that this fails if the cards are not in hand.
 - `Balatest.unhighlight_all()` unhighlights the hand.
-- `Balatest.use(card, instant)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])`
+- `Balatest.use(card, instant)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])` (you can also pass a function as in `buy`)
+- `Balatest.buy(func)` buys something from the shop. E.g. `Balatest.buy(function() return G.shop_jokers.cards[1] end)`
 - `Balatest.hook(obj, name, func)` hooks a function until the test concludes. See below for more information.
 - `Balatest.hook_raw(obj, name, new)` overwrites an object until the test concludes.
 
@@ -134,10 +135,3 @@ Balatest.run_test {
 Here, we hook the same function twice. Note that in the second hook, `orig` is the function defined in the first hook.
 Also note that the application of the hook is queued.
 After running these tests, even if they fail, the function will be what it was originally.
-
-# Current Limitations
-
-Currently, it's quite annoying to write tests using any of the following:
-- Anything in the shop
-- Certain modded object types
-Better support for these will be coming soon as I increase coverage on Bakery.
