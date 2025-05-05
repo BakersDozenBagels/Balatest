@@ -8,6 +8,7 @@ Balatest.done = {}
 Balatest.done_count = 0
 Balatest.current_test = nil
 Balatest.current_test_object = nil
+Balatest.hook_count = 0
 
 G.E_MANAGER.queues.Balatest = {}
 G.E_MANAGER.queues.Balatest_Run = {}
@@ -120,6 +121,7 @@ function Balatest.run_test(test, count)
             return
         end
 
+        Balatest.done[test.name] = nil
         Balatest.current_test = test.name
         Balatest.current_test_object = test
 
@@ -225,6 +227,9 @@ function Balatest.run_test(test, count)
         end
         Balatest.current_test = nil
         Balatest.current_test_object = nil
+    end)
+    tq(function()
+        return Balatest.hook_count == 0
     end)
 end
 
@@ -386,11 +391,6 @@ end
 
 local hooks = setmetatable({}, { __mode = 'k' })
 function Balatest.hook(obj, name, func)
-    hooks[obj] = hooks[obj] or {}
-    local cleanup = hooks[obj][name] == nil
-    if cleanup then
-        hooks[obj][name] = { obj[name] }
-    end
     local prev = obj[name]
     Balatest.q(function()
         if abort then return end
@@ -398,7 +398,12 @@ function Balatest.hook(obj, name, func)
             return func(prev, ...)
         end
     end)
+
+    hooks[obj] = hooks[obj] or {}
+    local cleanup = not hooks[obj][name]
     if cleanup then
+        Balatest.hook_count = Balatest.hook_count + 1
+        hooks[obj][name] = true
         local test = Balatest.current_test
         tq(Event {
             no_delete = true,
@@ -406,8 +411,9 @@ function Balatest.hook(obj, name, func)
             blockable = false,
             func = function()
                 if not Balatest.done[test] then return false end
-                obj[name] = hooks[obj][name][1]
+                obj[name] = prev
                 hooks[obj][name] = nil
+                Balatest.hook_count = Balatest.hook_count - 1
                 return true
             end
         })
