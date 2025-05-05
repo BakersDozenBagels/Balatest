@@ -20,18 +20,21 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.cash_out()` cashes out the round evaluation screen.
 - `Balatest.exit_shop()` exits the shop.
 - `Balatest.start_round()` selects the next blind.
+- `Balatest.skip_blind(for_tag)` skips the next blind for the given tag (by key).
 - `Balatest.play_hand { '2S', '10H' }` plays those cards in that order. Note that this fails if the cards are not in hand.
 - `Balatest.discard { 'Ts', 'Qc' }` discards those cards. Note that this fails if the cards are not in hand.
 - `Balatest.highlight { '2S', '10H' }` highlights those cards in that order. Note that this fails if the cards are not in hand.
 - `Balatest.unhighlight_all()` unhighlights the hand.
 - `Balatest.use(card, instant)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])`
 - `Balatest.hook(obj, name, func)` hooks a function until the test concludes. See below for more information.
+- `Balatest.hook_raw(obj, name, new)` overwrites an object until the test concludes.
 
 ### `assert`
 
 Here you will write some assertions on the final state of the test. Balatest provides a few helpers for this:
 - `Balatest.assert(bool, message?)` is a bare assertion.
 - `Balatest.assert_eq(a, b, message?)` asserts that two numbers are equal with or without Talisman.
+- `Balatest.assert_neq(a, b, message?)` asserts that two numbers are unequal with or without Talisman.
 - `Balatest.assert_chips(num, message?)` asserts that `G.GAME.chips` is equal to the supplied number.
 
 ## Example Test
@@ -65,6 +68,7 @@ Balatest will run each test with the following defaults:
 - `custom = {}` (`challenge.rules.custom`)
 - `deck = nil`
 - `blind = 'bl_small'`
+- `no_auto_start = false`
 
 # Advanced Features
 
@@ -134,8 +138,6 @@ After running these tests, even if they fail, the function will be what it was o
 # Current Limitations
 
 Currently, it's quite annoying to write tests using any of the following:
-- Tags
-- Skipping Blinds
 - Anything in the shop
 - Certain modded object types
 Better support for these will be coming soon as I increase coverage on Bakery.

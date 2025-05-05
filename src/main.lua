@@ -183,7 +183,9 @@ function Balatest.run_test(test, count)
                 return true
             end
         })
-        Balatest.start_round()
+        if not test.no_auto_start then
+            Balatest.start_round()
+        end
 
         Balatest.q(function()
             local r, e = pcall(test.execute)
@@ -256,6 +258,15 @@ function Balatest.start_round()
     -- Balatest.q(function()
     --     return abort or done
     -- end)
+end
+
+function Balatest.skip_blind(for_tag)
+    wait_for_input(G.STATES.BLIND_SELECT)
+    Balatest.q(function()
+        if abort then return end
+        G.FUNCS.skip_blind { UIBox = { get_UIE_by_ID = function() return { config = { ref_table = Tag(for_tag) } } end } }
+    end)
+    wait_for_input(G.STATES.BLIND_SELECT)
 end
 
 function Balatest.end_round()
@@ -394,13 +405,11 @@ function Balatest.use(card, instant)
 end
 
 local hooks = setmetatable({}, { __mode = 'k' })
-function Balatest.hook(obj, name, func)
+function Balatest.hook_raw(obj, name, new)
     local prev = obj[name]
     Balatest.q(function()
         if abort then return end
-        obj[name] = function(...)
-            return func(prev, ...)
-        end
+        obj[name] = new
     end)
 
     hooks[obj] = hooks[obj] or {}
@@ -424,6 +433,13 @@ function Balatest.hook(obj, name, func)
     end
 end
 
+function Balatest.hook(obj, name, func)
+    local prev = obj[name]
+    Balatest.hook_raw(obj, name, function(...)
+        return func(prev, ...)
+    end)
+end
+
 function Balatest.assert(bool, message, level)
     if not bool then error(message or 'An assertion failed!', level or 2) end
 end
@@ -434,6 +450,16 @@ function Balatest.assert_eq(a, b, message, level)
             (level or 2) + 1)
     else
         Balatest.assert(a == b, message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)), (level or 2) + 1)
+    end
+end
+
+function Balatest.assert_neq(a, b, message, level)
+    if to_big then
+        Balatest.assert(not to_big(a):eq(b), message or ('Expected ' .. tostring(a) .. ' to differ from ' .. tostring(b)),
+            (level or 2) + 1)
+    else
+        Balatest.assert(a ~= b, message or ('Expected ' .. tostring(a) .. ' to differ from ' .. tostring(b)),
+        (level or 2) + 1)
     end
 end
 
