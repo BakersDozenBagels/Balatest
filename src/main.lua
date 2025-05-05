@@ -22,8 +22,7 @@ end
 
 local function wait_for_input(state)
     Balatest.q(function()
-        if abort then return end
-        return abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
+        return Balatest.abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
             not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
     end)
 end
@@ -97,6 +96,7 @@ function Balatest.run_test(test, count)
         return
     end
     if not test.name then test.name = 'temporary' end
+    Balatest.done[test.name] = nil
     local test_done = false
     local pre_fail = false
     tq(function()
@@ -384,6 +384,36 @@ function Balatest.use(card)
     wait_for_input()
 end
 
+local hooks = setmetatable({}, { __mode = 'k' })
+function Balatest.hook(obj, name, func)
+    hooks[obj] = hooks[obj] or {}
+    local cleanup = hooks[obj][name] == nil
+    if cleanup then
+        hooks[obj][name] = { obj[name] }
+    end
+    local prev = obj[name]
+    Balatest.q(function()
+        if abort then return end
+        obj[name] = function(...)
+            return func(prev, ...)
+        end
+    end)
+    if cleanup then
+        local test = Balatest.current_test
+        tq(Event {
+            no_delete = true,
+            blocking = false,
+            blockable = false,
+            func = function()
+                if not Balatest.done[test] then return false end
+                obj[name] = hooks[obj][name][1]
+                hooks[obj][name] = nil
+                return true
+            end
+        })
+    end
+end
+
 function Balatest.assert(bool, message, level)
     if not bool then error(message or 'An assertion failed!', level or 2) end
 end
@@ -399,6 +429,6 @@ end
 
 function Balatest.assert_chips(val, message, level)
     Balatest.assert_eq(G.GAME.chips, val,
-    message or ('Expected ' .. tostring(val) .. ' total round chips, got ' .. tostring(G.GAME.chips)),
+        message or ('Expected ' .. tostring(val) .. ' total round chips, got ' .. tostring(G.GAME.chips)),
         (level or 2) + 1)
 end

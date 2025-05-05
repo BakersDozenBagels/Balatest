@@ -25,6 +25,7 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.highlight { '2S', '10H' }` highlights those cards in that order. Note that this fails if the cards are not in hand.
 - `Balatest.unhighlight_all()` unhighlights the hand.
 - `Balatest.use(card)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])`
+- `Balatest.hook(obj, name, func)` hooks a function until the test concludes. See below for more information.
 
 ### `assert`
 
@@ -76,6 +77,59 @@ Balatest will run each test with the following defaults:
 - Check `Balatest.current_test` for the name of the currently running test.
 - Check `Balatest.current_test_object` for the whole config of the currently running test.
 - Inspect `Balatest.done` for more detailed results of your tests.
+
+## `Balatest.hook`
+
+Sometimes it's necessary to hook a function in the middle of a test, for example to control RNG.
+Balatest provides a fixture to do this and automatically unhook the functions later.
+
+Consider the following quite silly test:
+
+```lua
+Balatest.run_test {
+    consumeables = { 'c_judgement' },
+    execute = function()
+        Balatest.hook(_G, 'create_card', function(orig, t, a, l, r, k, s, forced_key, ...)
+            return orig(t, a, l, r, k, s, 'j_chicot', ...)
+        end)
+        Balatest.use(G.consumeables.cards[1])
+    end,
+    assert = function()
+        Balatest.assert_eq(#G.consumeables.cards, 0)
+        Balatest.assert_eq(#G.jokers.cards, 1)
+        Balatest.assert(G.jokers.cards[1].config.center.key == 'j_chicot')
+    end
+}
+```
+
+Here, we force the global function `create_card` to create a Chicot (which otherwise cannot spawn from Judgement).
+Note that the first argument to the new function is the previous function.
+
+```lua
+Balatest.run_test {
+    consumeables = { 'c_judgement', 'c_judgement' },
+    execute = function()
+        Balatest.hook(_G, 'create_card', function(orig, t, a, l, r, k, s, forced_key, ...)
+            return orig(t, a, l, r, k, s, forced_key or 'j_perkeo', ...)
+        end)
+        Balatest.use(G.consumeables.cards[1])
+        Balatest.hook(_G, 'create_card', function(orig, t, a, l, r, k, s, forced_key, ...)
+            return orig(t, a, l, r, k, s, 'j_caino', ...)
+        end)
+        Balatest.use(G.consumeables.cards[2]) -- The card is looked up before the other one gets destroyed.
+    end,
+    assert = function()
+        Balatest.assert_eq(#G.consumeables.cards, 0)
+        Balatest.assert_eq(#G.jokers.cards, 2)
+        Balatest.assert(G.jokers.cards[1].config.center.key == 'j_perkeo')
+        Balatest.assert(G.jokers.cards[2].config.center.key == 'j_caino')
+    end
+}
+```
+
+Here, we hook the same function twice. Note that in the second hook, `orig` is the function defined in the first hook.
+Also note that the application of the hook is queued.
+After running these tests, even if they fail, the function will be what it was originally.
 
 # Current Limitations
 
