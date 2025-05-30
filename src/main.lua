@@ -33,11 +33,13 @@ function Balatest.TestPlay(settings)
     local mod = SMODS.current_mod and SMODS.current_mod.id or ''
     settings.name = ((SMODS.current_mod and mod .. '_') or '') ..
         (settings.name or ('unnamed_' .. (#Balatest.tests + 1)))
-    local req = {}
-    for k, v in pairs(settings.requires or {}) do
-        req[k] = (SMODS.current_mod and mod .. '_' or '') .. v
+    if settings.requires then
+        local req = {}
+        for k, v in pairs(settings.requires or {}) do
+            req[k] = (SMODS.current_mod and mod .. '_' or '') .. v
+        end
+        settings.requires = req
     end
-    settings.requires = req
     settings.category = settings.category or {}
     if type(settings.category) == "string" then settings.category = { settings.category } end
     Balatest.tests[settings.name] = settings
@@ -107,7 +109,7 @@ function Balatest.run_test(test, count)
         abort = nil
         if test.requires then
             sendWarnMessage('requires (on test ' .. test.name ..
-            ') is deprecated and will be removed in a future release.', 'Balatest')
+                ') is deprecated and will be removed in a future release.', 'Balatest')
         end
         for _, v in pairs(test.requires or {}) do
             if not Balatest.done[v] then
