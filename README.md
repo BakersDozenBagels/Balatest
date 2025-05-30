@@ -77,7 +77,6 @@ Balatest will run each test with the following defaults:
 - Specify `blind = 'bl_wheel'` to make every blind The Wheel. By default, every blind is a Small Blind.
 - Specify `name = 'something'` to give your test a descriptive name. Names are automatically prefixed with your mod's ID.
 - Specify `category = 'my_category'` to be able to run a subset of your tests. You can specify multiple categories in a table.
-- Specify `requires = { 'another_name' }` to only run your test once the one with that name has passed.
 - Use `Balatest.run_test { ... }` to run a single test not defined elsewhere.
 - Use `Balatest.run_test 'mod_id_test_name'` to run a single test.
 - Check `Balatest.current_test` for the name of the currently running test.

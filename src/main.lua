@@ -105,6 +105,10 @@ function Balatest.run_test(test, count)
     local pre_fail = false
     tq(function()
         abort = nil
+        if test.requires then
+            sendWarnMessage('requires (on test ' .. test.name ..
+            ') is deprecated and will be removed in a future release.', 'Balatest')
+        end
         for _, v in pairs(test.requires or {}) do
             if not Balatest.done[v] then
                 pre_fail = true
