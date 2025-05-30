@@ -467,7 +467,7 @@ end
 
 function Balatest.assert_eq(a, b, message, level)
     if to_big then
-        Balatest.assert(to_big(a):eq(b), message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)),
+        Balatest.assert(to_big(a) == to_big(b), message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)),
             (level or 2) + 1)
     else
         Balatest.assert(a == b, message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)), (level or 2) + 1)
@@ -476,7 +476,8 @@ end
 
 function Balatest.assert_neq(a, b, message, level)
     if to_big then
-        Balatest.assert(not to_big(a):eq(b), message or ('Expected ' .. tostring(a) .. ' to differ from ' .. tostring(b)),
+        Balatest.assert(to_big(a) ~= to_big(b),
+            message or ('Expected ' .. tostring(a) .. ' to differ from ' .. tostring(b)),
             (level or 2) + 1)
     else
         Balatest.assert(a ~= b, message or ('Expected ' .. tostring(a) .. ' to differ from ' .. tostring(b)),
