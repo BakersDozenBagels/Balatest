@@ -38,14 +38,16 @@ function Balatest.TestPlay(settings)
         req[k] = (SMODS.current_mod and mod .. '_' or '') .. v
     end
     settings.requires = req
-    settings.category = settings.category or ''
+    settings.category = settings.category or {}
+    if type(settings.category) == "string" then settings.category = { settings.category } end
     Balatest.tests[settings.name] = settings
     Balatest.tests_by_mod[mod] = Balatest.tests_by_mod[mod] or {}
     Balatest.tests_by_mod[mod][settings.name] = true
     Balatest.tests_by_mod_and_category[mod] = Balatest.tests_by_mod_and_category[mod] or {}
-    Balatest.tests_by_mod_and_category[mod][settings.category] = Balatest.tests_by_mod_and_category[mod]
-        [settings.category] or {}
-    Balatest.tests_by_mod_and_category[mod][settings.category][settings.name] = true
+    for _, cat in pairs(settings.category) do
+        Balatest.tests_by_mod_and_category[mod][cat] = Balatest.tests_by_mod_and_category[mod][cat] or {}
+        Balatest.tests_by_mod_and_category[mod][cat][settings.name] = true
+    end
     Balatest.test_order[#Balatest.test_order + 1] = settings.name
 end
 
