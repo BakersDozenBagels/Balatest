@@ -461,6 +461,28 @@ function Balatest.hook(obj, name, func)
     end)
 end
 
+function Balatest.reload()
+    Balatest.q(function()
+        G.E_MANAGER:clear_queue()
+        G.E_MANAGER:add_event(Event {
+            no_delete = true,
+            func = function()
+                save_run()
+                local save = type(G.ARGS.save_run) == 'table' and STR_PACK(G.ARGS.save_run) or G.ARGS.save_run
+                -- save = love.data.compress('string', 'deflate', save, 1)
+                -- save = love.data.decompress('string', 'deflate', save)
+                if save ~= nil then save = STR_UNPACK(save) end
+
+                G:delete_run()
+                G.SAVED_GAME = save
+                G:start_run { savetext = save }
+                return true
+            end
+        })
+    end)
+    wait_for_input()
+end
+
 function Balatest.assert(bool, message, level)
     if not bool then error(message or 'An assertion failed!', level or 2) end
 end
