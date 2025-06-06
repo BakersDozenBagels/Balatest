@@ -31,6 +31,7 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.hook_raw(obj, name, new)` overwrites an object until the test concludes.
 - `Balatest.wait_for_input(state, front)` waits until the game will accept input.
 - `Balatest.reload()` saves and loads the game as if by returning to the main menu.
+- `Balatest.wait()` waits until everything currently in the standard event queue completes.
 
 ### `assert`
 

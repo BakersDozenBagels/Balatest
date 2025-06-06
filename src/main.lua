@@ -483,6 +483,19 @@ function Balatest.reload()
     wait_for_input()
 end
 
+function Balatest.wait()
+    local done = false
+    Balatest.q(function()
+        G.E_MANAGER:add_event(Event {
+            func = function()
+                done = true
+                return true
+            end
+        })
+    end)
+    Balatest.q(function() return done end)
+end
+
 function Balatest.assert(bool, message, level)
     if not bool then error(message or 'An assertion failed!', level or 2) end
 end
