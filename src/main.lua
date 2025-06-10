@@ -55,8 +55,30 @@ end
 
 function Balatest.run_tests(mod, category)
     local todo = {}
-    local allowed = category and Balatest.tests_by_mod_and_category[mod][category] or mod and Balatest.tests_by_mod[mod] or
-        nil
+    local allowed = nil
+    if category then
+        if not mod then
+            sendErrorMessage('No mod provided for categories. Aborting.', 'Balatest')
+            return
+        end
+        if not Balatest.tests_by_mod_and_category[mod] then
+            sendErrorMessage('That mod appears to not exist. Aborting. (Are you using your prefix instead of your ID?)',
+                'Balatest')
+            return
+        end
+        if not Balatest.tests_by_mod_and_category[mod][category] then
+            sendErrorMessage('That category appears to not exist in that mod. Aborting.', 'Balatest')
+            return
+        end
+        allowed = Balatest.tests_by_mod_and_category[mod][category]
+    elseif mod then
+        if not Balatest.tests_by_mod[mod] then
+            sendErrorMessage('That mod appears to not exist. Aborting. (Are you using your prefix instead of your ID?)',
+                'Balatest')
+            return
+        end
+        allowed = Balatest.tests_by_mod[mod]
+    end
 
     if not allowed then
         todo = Balatest.test_order
@@ -503,7 +525,7 @@ end
 function Balatest.assert_eq(a, b, message, level)
     if to_big then
         Balatest.assert(((a == nil) == (b == nil)) and to_big(a) == to_big(b),
-        message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)),
+            message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)),
             (level or 2) + 1)
     else
         Balatest.assert(a == b, message or ('Expected ' .. tostring(a) .. ' to equal ' .. tostring(b)), (level or 2) + 1)
