@@ -81,6 +81,7 @@ Balatest will run each test with the following defaults:
 - Specify `category = 'my_category'` to be able to run a subset of your tests. You can specify multiple categories in a table.
 - Use `Balatest.run_test { ... }` to run a single test not defined elsewhere.
 - Use `Balatest.run_test 'mod_id_test_name'` to run a single test.
+- Use `Balatest.run_test('something', function)` to use a custom logger for the test's results.
 - Check `Balatest.current_test` for the name of the currently running test.
 - Check `Balatest.current_test_object` for the whole config of the currently running test.
 - Inspect `Balatest.done` for more detailed results of your tests.

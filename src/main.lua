@@ -134,7 +134,7 @@ function Balatest.run_tests(mod, category)
     })
 end
 
-function Balatest.run_test(test, count)
+function Balatest.run_test(test, after, count)
     if type(test) == 'string' then test = Balatest.tests[test] end
     if test == nil then
         sendWarnMessage('That test does not exist.', 'Balatest')
@@ -164,7 +164,7 @@ function Balatest.run_test(test, count)
             if count == Balatest.done_count then
                 abort = 'Tests stalled'
             else
-                Balatest.run_test(test, Balatest.done_count)
+                Balatest.run_test(test, after, Balatest.done_count)
             end
             return
         end
@@ -270,11 +270,15 @@ function Balatest.run_test(test, count)
             Balatest.done[test.name] = { success = false, reason = 'Unknown' }
             Balatest.done_count = Balatest.done_count + 1
         end
-        sendInfoMessage(
-            'Test ' ..
-            test.name ..
-            (Balatest.done[test.name].success and ' passed.' or (' failed with: ' .. Balatest.done[test.name].reason)),
-            'Balatest')
+        if after then
+            after(test.name, Balatest.done[test.name])
+        else
+            (Balatest.done[test.name].success and sendInfoMessage or sendErrorMessage)(
+                    'Test ' ..
+                    test.name ..
+                    (Balatest.done[test.name].success and ' passed.' or (' failed with: ' .. Balatest.done[test.name].reason)),
+                    'Balatest')
+        end
         Balatest.current_test = nil
         Balatest.current_test_object = nil
     end)
