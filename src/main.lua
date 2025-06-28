@@ -12,18 +12,35 @@ Balatest.hook_count = 0
 
 G.E_MANAGER.queues.Balatest = {}
 G.E_MANAGER.queues.Balatest_Run = {}
+local abort
+local function protect(f, t)
+    return function()
+        if not t and abort then return true end
+        local res, ret = pcall(f)
+        if not res and not Balatest.done[Balatest.current_test] then abort = ret or true end
+        return not res or ret ~= false
+    end
+end
+local function protect_ev(f, t)
+    if type(f) == "table" then
+        f.func = protect(f.func, t)
+    elseif type(f) == "function" then
+        f = Event { no_delete = true, func = protect(f, t) }
+    else
+        error("Expected a function or event, got a " .. type(f), 3)
+    end
+    return f
+end
 local function tq(f, front)
-    local f2 = function() return f() ~= false end
-    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest', front)
+    G.E_MANAGER:add_event(protect_ev(f, true), 'Balatest', front)
 end
 function Balatest.q(f, front)
-    local f2 = function() return f() ~= false end
-    G.E_MANAGER:add_event(type(f) == 'function' and Event { no_delete = true, func = f2 } or f, 'Balatest_Run', front)
+    G.E_MANAGER:add_event(protect_ev(f), 'Balatest_Run', front)
 end
 
 local function wait_for_input(state, front)
     Balatest.q(function()
-        return Balatest.abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
+        return abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
             not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
     end, front)
 end
@@ -88,6 +105,7 @@ function Balatest.run_tests(mod, category)
         end
     end
 
+    Balatest.done_count = 0
     local prev_speed = G.SETTINGS.GAMESPEED
     G.SETTINGS.GAMESPEED = 65536
     sendInfoMessage('Running ' .. #todo .. ' tests...', 'Balatest')
@@ -116,7 +134,6 @@ function Balatest.run_tests(mod, category)
     })
 end
 
-local abort
 function Balatest.run_test(test, count)
     if type(test) == 'string' then test = Balatest.tests[test] end
     if test == nil then
