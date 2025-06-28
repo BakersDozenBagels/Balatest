@@ -254,11 +254,6 @@ function Balatest.run_test(test, count)
                         Balatest.done_count = Balatest.done_count + 1
                     end
                 end
-                sendInfoMessage(
-                    'Test ' ..
-                    test.name ..
-                    (Balatest.done[test.name].success and ' passed.' or (' failed with: ' .. Balatest.done[test.name].reason)),
-                    'Balatest')
                 test_done = true
             end)
         end)
@@ -275,11 +270,19 @@ function Balatest.run_test(test, count)
             Balatest.done[test.name] = { success = false, reason = 'Unknown' }
             Balatest.done_count = Balatest.done_count + 1
         end
+        sendInfoMessage(
+            'Test ' ..
+            test.name ..
+            (Balatest.done[test.name].success and ' passed.' or (' failed with: ' .. Balatest.done[test.name].reason)),
+            'Balatest')
         Balatest.current_test = nil
         Balatest.current_test_object = nil
     end)
     tq(function()
         return Balatest.hook_count == 0
+    end)
+    tq(function()
+        G.E_MANAGER.queues.Balatest_Run = {}
     end)
 end
 
