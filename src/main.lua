@@ -231,6 +231,7 @@ function Balatest.run_test(test, after, count)
                 return true
             end
         })
+        wait_for_input(G.STATES.BLIND_SELECT)
         if not test.no_auto_start then
             Balatest.start_round()
         end
@@ -291,7 +292,6 @@ function Balatest.run_test(test, after, count)
 end
 
 function Balatest.start_round()
-    wait_for_input(G.STATES.BLIND_SELECT)
     Balatest.q(function()
         if abort then return end
         G.FUNCS.select_blind {
@@ -351,6 +351,7 @@ function Balatest.exit_shop()
         if abort then return end
         G.FUNCS.toggle_shop()
     end)
+    wait_for_input(G.STATES.BLIND_SELECT)
 end
 
 function Balatest.next_round()
