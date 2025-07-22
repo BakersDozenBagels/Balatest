@@ -294,7 +294,10 @@ function Balatest.start_round()
     wait_for_input(G.STATES.BLIND_SELECT)
     Balatest.q(function()
         if abort then return end
-        G.FUNCS.select_blind { config = { ref_table = G.P_BLINDS[Balatest.current_test_object.blind or 'bl_small'] } }
+        G.FUNCS.select_blind {
+            config = { ref_table = G.P_BLINDS[Balatest.current_test_object.blind or 'bl_small'] },
+            UIBox = { get_UIE_by_ID = function() end }
+        }
     end)
     wait_for_input(G.STATES.SELECTING_HAND)
     -- local done = false
