@@ -10,6 +10,9 @@ Balatest.current_test = nil
 Balatest.current_test_object = nil
 Balatest.hook_count = 0
 
+SMODS.Challenges = SMODS.Challenges or {}
+SMODS.Challenges.Balatest_Test_Runner = SMODS.Challenges.Balatest_Test_Runner or { calculate = function() end }
+
 G.E_MANAGER.queues.Balatest = {}
 G.E_MANAGER.queues.Balatest_Run = {}
 local abort
