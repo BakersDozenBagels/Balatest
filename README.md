@@ -27,6 +27,9 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.unhighlight_all()` unhighlights the hand.
 - `Balatest.use(card, instant)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])` (you can also pass a function as in `buy`)
 - `Balatest.buy(func)` buys something from the shop. E.g. `Balatest.buy(function() return G.shop_jokers.cards[1] end)`
+- `Balatest.redeem(func)` redeems a voucher. E.g. `Balatest.redeem(function() return G.shop_vouchers.cards[1] end)`
+- `Balatest.open(func)` opens a booster. E.g. `Balatest.open(function() return G.shop_booster.cards[1] end)`
+- `Balatest.sell(func)` sells a card. E.g. `Balatest.sell(function() return G.jokers.cards[1] end)`
 - `Balatest.hook(obj, name, func)` hooks a function until the test concludes. See below for more information.
 - `Balatest.hook_raw(obj, name, new)` overwrites an object until the test concludes.
 - `Balatest.wait_for_input(state, front)` waits until the game will accept input.
@@ -40,6 +43,7 @@ Here you will write some assertions on the final state of the test. Balatest pro
 - `Balatest.assert_eq(a, b, message?)` asserts that two numbers are equal with or without Talisman.
 - `Balatest.assert_neq(a, b, message?)` asserts that two numbers are unequal with or without Talisman.
 - `Balatest.assert_chips(num, message?)` asserts that `G.GAME.chips` is equal to the supplied number.
+- `Balatest.assert_dollars(num, message?)` asserts that `G.GAME.dollars` is equal to the supplied number.
 
 ## Example Test
 

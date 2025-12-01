@@ -478,6 +478,27 @@ function Balatest.buy(func)
     wait_for_input()
 end
 
+function Balatest.redeem(func)
+    Balatest.q(function()
+        func():redeem()
+    end)
+    wait_for_input()
+end
+
+function Balatest.open(func)
+    Balatest.q(function()
+        func():open()
+    end)
+    wait_for_input()
+end
+
+function Balatest.sell(card)
+    Balatest.q(function()
+        (type(card) == 'function' and card() or card):sell_card()
+    end)
+    wait_for_input()
+end
+
 local hooks = setmetatable({}, { __mode = 'k' })
 function Balatest.hook_raw(obj, name, new)
     local prev = obj[name]
@@ -577,5 +598,11 @@ end
 function Balatest.assert_chips(val, message, level)
     Balatest.assert_eq(G.GAME.chips, val,
         message or ('Expected ' .. tostring(val) .. ' total round chips, got ' .. tostring(G.GAME.chips)),
+        (level or 2) + 1)
+end
+
+function Balatest.assert_dollars(val, message, level)
+    Balatest.assert_eq(G.GAME.dollars, val,
+        message or ('Expected $' .. tostring(val) .. ' total, got ' .. tostring(G.GAME.dollars)),
         (level or 2) + 1)
 end
