@@ -46,6 +46,7 @@ local function wait_for_input(state, front)
         return abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
             not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
     end, front)
+    Balatest.wait()
 end
 Balatest.wait_for_input = wait_for_input
 
