@@ -12,9 +12,10 @@ A test in Balatest is fundamentally a [challenge](https://github.com/Steamodded/
 
 ### `execute`
 
-Here you will put some actions in a queue to set up the test. Note that this queue is *not* the default one; use `Balatest.q()` to add to it (`q` accepts bare functions as well as `Event`s for added convenience. Additionally, it will automatically `return true` for you unless you explicitly `return false`).
+Here you will put some actions in a queue to set up the test. Note that this queue is _not_ the default one; use `Balatest.q()` to add to it (`q` accepts bare functions as well as `Event`s for added convenience. Additionally, it will automatically `return true` for you unless you explicitly `return false`).
 
 Balatest also provides some pre-built events for you (each of these adds to the queue for you):
+
 - `Balatest.next_round()` ends the round and navigates to the next one.
 - `Balatest.end_round()` ends the round and waits on the evaluation screen.
 - `Balatest.cash_out()` cashes out the round evaluation screen.
@@ -34,11 +35,12 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.hook_raw(obj, name, new)` overwrites an object until the test concludes.
 - `Balatest.wait_for_input(state, front)` waits until the game will accept input.
 - `Balatest.reload()` saves and loads the game as if by returning to the main menu.
-- `Balatest.wait()` waits until everything currently in the standard event queue completes.
+- `Balatest.wait(depth)` waits until everything currently in the standard event queue completes, optionally multiple times.
 
 ### `assert`
 
 Here you will write some assertions on the final state of the test. Balatest provides a few helpers for this:
+
 - `Balatest.assert(bool, message?)` is a bare assertion.
 - `Balatest.assert_eq(a, b, message?)` asserts that two numbers are equal with or without Talisman.
 - `Balatest.assert_neq(a, b, message?)` asserts that two numbers are unequal with or without Talisman.
@@ -62,6 +64,7 @@ Balatest.TestPlay {
 ## Default Values
 
 Balatest will run each test with the following defaults:
+
 - `back = 'Red Deck'`
 - `stake = 1`
 - `seed = nil`

@@ -558,15 +558,22 @@ function Balatest.reload()
     wait_for_input()
 end
 
-function Balatest.wait()
+function Balatest.wait(depth)
     local done = false
     Balatest.q(function()
-        G.E_MANAGER:add_event(Event {
-            func = function()
-                done = true
-                return true
-            end
-        })
+        local function recurse(d)
+            G.E_MANAGER:add_event(Event {
+                func = function()
+                    if d == 0 then
+                        done = true
+                    else
+                        recurse(d - 1)
+                    end
+                    return true
+                end
+            })
+        end
+        recurse(depth or 0)
     end)
     Balatest.q(function() return done end)
 end
