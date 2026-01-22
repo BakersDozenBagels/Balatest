@@ -231,6 +231,8 @@ function Balatest.run_test(test, after, count)
         G.E_MANAGER:add_event(Event {
             no_delete = true,
             func = function()
+                -- No idea why this needs to be here.
+                G.TAROT_INTERRUPT = nil
                 G:start_run(args)
                 return true
             end
