@@ -63,6 +63,11 @@ function Balatest.TestPlay(settings)
     end
     settings.category = settings.category or {}
     if type(settings.category) == "string" then settings.category = { settings.category } end
+    if settings.consumables then
+        settings.consumeables = settings.consumables
+    elseif settings.consumeables then
+        settings.consumables = settings.consumeables
+    end
     Balatest.tests[settings.name] = settings
     Balatest.tests_by_mod[mod] = Balatest.tests_by_mod[mod] or {}
     Balatest.tests_by_mod[mod][settings.name] = true
