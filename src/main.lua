@@ -248,7 +248,7 @@ function Balatest.run_test(test, after, count)
         end
 
         Balatest.q(function()
-            local r, e = pcall(test.execute)
+            local r, e = pcall(test.execute or function() end)
             if not r and not Balatest.done[test.name] then abort = e or true end
         end)
 
@@ -257,7 +257,7 @@ function Balatest.run_test(test, after, count)
             Balatest.q(function()
                 if abort then return end
                 if not Balatest.done[test.name] then
-                    local r, e = pcall(test.assert)
+                    local r, e = pcall(test.assert or function() end)
                     if not r then
                         Balatest.done[test.name] = { success = false, reason = e }
                         Balatest.done_count = Balatest.done_count + 1
