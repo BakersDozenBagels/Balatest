@@ -1,13 +1,51 @@
 Balatest = {}
 
+--- @class TestPlay The configuration for one unit test.
+--- @field name string The unique name for this test.
+--- @field category? string[]|string The categories this test is a part of. This is used to run a subset of tests.
+--- @field back? string The deck to use. Defaults to `'Red Deck'`.
+--- @field stake? integer|string The stake to use. Defaults to `1`.
+--- @field seed? string The seed to use. Use `nil` for a random seed.
+--- @field jokers? string[] The jokers to start with.
+--- @field consumeables? string[] The consumables to start with.
+--- @field vouchers? string[] The vouchers to start with.
+--- @field dollars? integer The amount of money to start with. Defaults to `0`.
+--- @field discards? integer The amount of discards to start with. Defaults to `999`.
+--- @field hands? integer The amount of hands to start with. Defaults to `999`.
+--- @field hand_size? integer The amount of hand size to start with. Defaults to `999`.
+--- @field modifiers? {id:string,value?:any}[] The challenge modifiers to set. Corresponds to `challenge.rules.modifiers`.
+--- @field custom? {id:string,value?:any}[] The challenge rules to set. Corresponds to `challenge.rules.custom`. By default, `'no_reward'`, `'no_interest'`, `'no_extra_hand_money'`, and `'money_per_discard' = 0` are set.
+--- @field deck? table|{type?:string|"Challenge Deck",cards?:table[],yes_ranks?:table<string,true>,yes_suits?:table<string,true>,no_ranks?:table<string,true>,no_suits?:table<string,true>,enhancement?:string,edition?:string,seal?:string} The starting deck of cards. Corresponds to `challenge.deck`.
+--- @field blind? string The only blind which will spawn for this test. Defaults to `'bl_small'`.
+--- @field no_auto_start? boolean Set this to true to skip automatically entering the first blind.
+--- @field requires nil Deprecated.
+
+--- @alias Result {success:true}|{success:false,reason:string}
+
+--- Every test registered with `Balatest.TestPlay`.
+--- @type TestPlay[]
 Balatest.tests = {}
+--- Every test registered with `Balatest.TestPlay`, sorted by mod ID.
+--- @type {[string]:{[string]:boolean}}
 Balatest.tests_by_mod = {}
+--- Every test registered with `Balatest.TestPlay`, sorted by mod ID, then by category.
+--- @type {[string]:{[string]:{[string]:boolean}}}
 Balatest.tests_by_mod_and_category = {}
+--- Test IDs, in the order in which the corresponding tests are run. By default, this is exactly the order tests are registered in.
+--- @type string[]
 Balatest.test_order = {}
+--- Contains information on the status of previously run tests.
+--- @type {[string]:Result}
 Balatest.done = {}
+--- How many of the tests in the current batch have completed running.
 Balatest.done_count = 0
+--- The ID for the current test, or `nil` if no test is being run.
+--- @type string|nil
 Balatest.current_test = nil
+--- The configuration for the current test, or `nil` if no test is being run.
+--- @type TestPlay|nil
 Balatest.current_test_object = nil
+--- The number of hooks currently active which need to be removed.
 Balatest.hook_count = 0
 
 SMODS.Challenges = SMODS.Challenges or {}
@@ -37,10 +75,18 @@ end
 local function tq(f, front)
     G.E_MANAGER:add_event(protect_ev(f, true), 'Balatest', front)
 end
+--- Queues an event to be run during this test.
+--- Note that events added this way implicitly `return true` unless you explicitly `return false`, unlike the vanilla ones.
+--- @param f (fun():boolean?)|Event The event or a function to run turn into an event.
+--- @param front boolean|nil `true` to add the event to the front of the queue, rather than the end.
 function Balatest.q(f, front)
     G.E_MANAGER:add_event(protect_ev(f), 'Balatest_Run', front)
 end
 
+--- @alias State number A state in G.STATES
+--- Queues an event to wait for manual input to be possible.
+--- @param state State? If set, also waits for the game to reach this state.
+--- @param front boolean? Forwarded to `Balatest.q`.
 local function wait_for_input(state, front)
     Balatest.q(function()
         return abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
@@ -50,6 +96,8 @@ local function wait_for_input(state, front)
 end
 Balatest.wait_for_input = wait_for_input
 
+--- Registers a test.
+--- @param settings TestPlay The test to register.
 function Balatest.TestPlay(settings)
     local mod = SMODS.current_mod and SMODS.current_mod.id or ''
     settings.name = ((SMODS.current_mod and mod .. '_') or '') ..
@@ -79,6 +127,9 @@ function Balatest.TestPlay(settings)
     Balatest.test_order[#Balatest.test_order + 1] = settings.name
 end
 
+--- Runs a suite of tests. If no parameters are given, runs every registered test.
+--- @param mod? string The mod to run tests from.
+--- @param category? string The category to run tests from.
 function Balatest.run_tests(mod, category)
     local todo = {}
     local allowed = nil
@@ -143,6 +194,10 @@ function Balatest.run_tests(mod, category)
     })
 end
 
+--- Runs a single test.
+--- @param test string|TestPlay The test to run.
+--- @param after? fun(test_name: string, result: Result) The result handler for this test. If unset, defaults to a simple logger.
+--- @param count nil Deprecated.
 function Balatest.run_test(test, after, count)
     if type(test) == 'string' then test = Balatest.tests[test] end
     if test == nil then
@@ -302,11 +357,13 @@ function Balatest.run_test(test, after, count)
     end)
 end
 
-function Balatest.start_round()
+--- Starts the next blind from the blind select screen.
+---@param with_blind? string The blind to go to.
+function Balatest.start_round(with_blind)
     Balatest.q(function()
         if abort then return end
         G.FUNCS.select_blind {
-            config = { ref_table = G.P_BLINDS[Balatest.current_test_object.blind or 'bl_small'] },
+            config = { ref_table = G.P_BLINDS[with_blind or Balatest.current_test_object.blind or 'bl_small'] },
             UIBox = { get_UIE_by_ID = function() end }
         }
     end)
@@ -329,6 +386,8 @@ function Balatest.start_round()
     -- end)
 end
 
+--- Skips the next blind for the specified tag.
+--- @param for_tag string The tag ID that will spawn.
 function Balatest.skip_blind(for_tag)
     wait_for_input(G.STATES.BLIND_SELECT)
     Balatest.q(function()
@@ -338,6 +397,7 @@ function Balatest.skip_blind(for_tag)
     wait_for_input(G.STATES.BLIND_SELECT)
 end
 
+--- Ends the current round as though the blind was won and goes to the results screen.
 function Balatest.end_round()
     wait_for_input()
     Balatest.q(function()
@@ -349,6 +409,7 @@ function Balatest.end_round()
     wait_for_input(G.STATES.ROUND_EVAL)
 end
 
+--- Cashes out from the results screen and goes to the shop.
 function Balatest.cash_out()
     Balatest.q(function()
         if abort then return end
@@ -357,6 +418,7 @@ function Balatest.cash_out()
     wait_for_input()
 end
 
+--- Exits the shop and goes to the blind select screen.
 function Balatest.exit_shop()
     Balatest.q(function()
         if abort then return end
@@ -365,11 +427,13 @@ function Balatest.exit_shop()
     wait_for_input(G.STATES.BLIND_SELECT)
 end
 
-function Balatest.next_round()
+--- Ends the round and navigates to the next one.
+---@param with_blind? string The blind to go to.
+function Balatest.next_round(with_blind)
     Balatest.end_round()
     Balatest.cash_out()
     Balatest.exit_shop()
-    Balatest.start_round()
+    Balatest.start_round(with_blind)
 end
 
 local suits = {
@@ -431,6 +495,10 @@ local function select(cards)
     G.hand:align_cards()
 end
 
+--- @alias Cards string[]
+
+--- Plays a hand with the specified cards in the specified order.
+--- @param cards Cards
 function Balatest.play_hand(cards)
     Balatest.q(function()
         select(cards)
@@ -440,6 +508,8 @@ function Balatest.play_hand(cards)
     wait_for_input()
 end
 
+--- Discards the specified cards.
+--- @param cards Cards
 function Balatest.discard(cards)
     Balatest.q(function()
         select(cards)
@@ -449,6 +519,8 @@ function Balatest.discard(cards)
     wait_for_input(G.STATES.SELECTING_HAND)
 end
 
+--- Highlights the specified cards in the specified order.
+--- @param cards Cards
 function Balatest.highlight(cards)
     Balatest.q(function()
         select(cards)
@@ -456,6 +528,7 @@ function Balatest.highlight(cards)
     wait_for_input()
 end
 
+--- Unhighlights all cards in hand.
 function Balatest.unhighlight_all()
     Balatest.q(function()
         G.hand:unhighlight_all()
@@ -463,6 +536,9 @@ function Balatest.unhighlight_all()
     wait_for_input()
 end
 
+--- Uses a consumable.
+--- @param card Card|fun(): Card The card to use or a function to determine the card to use.
+--- @param instant nil Deprecated.
 function Balatest.use(card, instant)
     if instant then
         if instant ~= 1 then
@@ -479,6 +555,8 @@ function Balatest.use(card, instant)
     wait_for_input(nil, instant)
 end
 
+--- Buys something from the shop.
+--- @param func fun(): Card The function to determine the card to buy.
 function Balatest.buy(func)
     Balatest.q(function()
         G.FUNCS.buy_from_shop { config = { ref_table = func() } }
@@ -486,6 +564,8 @@ function Balatest.buy(func)
     wait_for_input()
 end
 
+--- Redeems a voucher from the shop.
+--- @param func fun(): Voucher The function to determine the voucher to redeem.
 function Balatest.redeem(func)
     Balatest.q(function()
         func():redeem()
@@ -493,6 +573,8 @@ function Balatest.redeem(func)
     wait_for_input()
 end
 
+--- Opens a booster from the shop.
+--- @param func fun(): Booster The function to determine the booster to open.
 function Balatest.open(func)
     Balatest.q(function()
         func():open()
@@ -500,6 +582,8 @@ function Balatest.open(func)
     wait_for_input()
 end
 
+--- Sells something.
+--- @param card Card|fun(): Card The card to sell or a function to determine the card to sell.
 function Balatest.sell(card)
     Balatest.q(function()
         (type(card) == 'function' and card() or card):sell_card()
@@ -508,6 +592,10 @@ function Balatest.sell(card)
 end
 
 local hooks = setmetatable({}, { __mode = 'k' })
+--- Hooks an arbitrary value. The hook is applied in queue and is reset at the end of the test.
+--- @param obj table The object to hook.
+--- @param name any The key withing the object to hook.
+--- @param new any The new value.
 function Balatest.hook_raw(obj, name, new)
     local prev = obj[name]
     Balatest.q(function()
@@ -536,6 +624,10 @@ function Balatest.hook_raw(obj, name, new)
     end
 end
 
+--- Hooks an function. The hook is applied in queue and is reset at the end of the test.
+--- @param obj table The object to hook.
+--- @param name any The key withing the object to hook.
+--- @param func fun(orig: function, ...) The new function. The original function is passed as the first parameter.
 function Balatest.hook(obj, name, func)
     local prev = obj[name]
     Balatest.hook_raw(obj, name, function(...)
@@ -543,6 +635,7 @@ function Balatest.hook(obj, name, func)
     end)
 end
 
+--- Reloads the game as though the player saved, quit, and continued.
 function Balatest.reload()
     Balatest.q(function()
         G.E_MANAGER:clear_queue()
@@ -565,6 +658,8 @@ function Balatest.reload()
     wait_for_input()
 end
 
+--- Waits for the standard event queue to complete.
+--- @param depth? integer If set, waits additional times. This is useful to wait for an event that queues another event (etc).
 function Balatest.wait(depth)
     local done = false
     Balatest.q(function()
@@ -585,10 +680,19 @@ function Balatest.wait(depth)
     Balatest.q(function() return done end)
 end
 
+--- Asserts a condition.
+--- @param bool boolean The condition to assert.
+--- @param message? string The message to use if the assertion fails.
+--- @param level? integer The depth of this call. Use this in assertion libraries to point the blame higher in the callstack.
 function Balatest.assert(bool, message, level)
     if not bool then error(message or 'An assertion failed!', level or 2) end
 end
 
+--- Asserts that two numbers are equal. Handles Talisman jank for you.
+--- @param a number The tested value.
+--- @param b number The expected value.
+--- @param message? string The message to use if the assertion fails.
+--- @param level? integer The depth of this call. Use this in assertion libraries to point the blame higher in the callstack.
 function Balatest.assert_eq(a, b, message, level)
     if to_big then
         Balatest.assert(((a == nil) == (b == nil)) and to_big(a) == to_big(b),
@@ -599,6 +703,11 @@ function Balatest.assert_eq(a, b, message, level)
     end
 end
 
+--- Asserts that two numbers are unequal. Handles Talisman jank for you.
+--- @param a number The tested value.
+--- @param b number The expected value.
+--- @param message? string The message to use if the assertion fails.
+--- @param level? integer The depth of this call. Use this in assertion libraries to point the blame higher in the callstack.
 function Balatest.assert_neq(a, b, message, level)
     if to_big then
         Balatest.assert(((a == nil) == (b == nil)) and to_big(a) ~= to_big(b),
@@ -610,12 +719,20 @@ function Balatest.assert_neq(a, b, message, level)
     end
 end
 
+--- Asserts the amount of total round chips.
+--- @param val number The tested value.
+--- @param message? string The message to use if the assertion fails.
+--- @param level? integer The depth of this call. Use this in assertion libraries to point the blame higher in the callstack.
 function Balatest.assert_chips(val, message, level)
     Balatest.assert_eq(G.GAME.chips, val,
         message or ('Expected ' .. tostring(val) .. ' total round chips, got ' .. tostring(G.GAME.chips)),
         (level or 2) + 1)
 end
 
+--- Asserts the amount of dollars.
+--- @param val number The tested value.
+--- @param message? string The message to use if the assertion fails.
+--- @param level? integer The depth of this call. Use this in assertion libraries to point the blame higher in the callstack.
 function Balatest.assert_dollars(val, message, level)
     Balatest.assert_eq(G.GAME.dollars, val,
         message or ('Expected $' .. tostring(val) .. ' total, got ' .. tostring(G.GAME.dollars)),

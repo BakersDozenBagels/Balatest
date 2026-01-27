@@ -16,11 +16,11 @@ Here you will put some actions in a queue to set up the test. Note that this que
 
 Balatest also provides some pre-built events for you (each of these adds to the queue for you):
 
-- `Balatest.next_round()` ends the round and navigates to the next one.
+- `Balatest.next_round(with_blind)` ends the round and navigates to the next one.
 - `Balatest.end_round()` ends the round and waits on the evaluation screen.
 - `Balatest.cash_out()` cashes out the round evaluation screen.
 - `Balatest.exit_shop()` exits the shop.
-- `Balatest.start_round()` selects the next blind.
+- `Balatest.start_round(with_blind)` selects the next blind.
 - `Balatest.skip_blind(for_tag)` skips the next blind for the given tag (by key).
 - `Balatest.play_hand { '2S', '10H' }` plays those cards in that order. Note that this fails if the cards are not in hand.
 - `Balatest.discard { 'Ts', 'Qc' }` discards those cards. Note that this fails if the cards are not in hand.
