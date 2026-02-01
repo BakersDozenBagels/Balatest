@@ -80,6 +80,7 @@ Balatest will run each test with the following defaults:
 - `deck = nil`
 - `blind = 'bl_small'`
 - `no_auto_start = false`
+- `required_mods = nil`
 
 # Advanced Features
 
@@ -92,6 +93,8 @@ Balatest will run each test with the following defaults:
 - Check `Balatest.current_test` for the name of the currently running test.
 - Check `Balatest.current_test_object` for the whole config of the currently running test.
 - Inspect `Balatest.done` for more detailed results of your tests.
+- Use `required_mods = { 'Talisman' }` to skip a test if Talisman is not installed.
+- Use `skip = function()` to specify custom conditions for when to skip a test.
 
 ## `Balatest.hook`
 

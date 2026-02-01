@@ -19,8 +19,12 @@ Balatest = {}
 --- @field blind? string The only blind which will spawn for this test. Defaults to `'bl_small'`.
 --- @field no_auto_start? boolean Set this to true to skip automatically entering the first blind.
 --- @field requires nil Deprecated.
+--- @field required_mods? string[]|string The test will be skipped if any of these mods are not loaded.
+--- @field skip? fun(): boolean? Return `true` or any string to skip this test.
+--- @field execute? fun() The function to perform the actions under test.
+--- @field assert? fun() The function to assert conditions about the game state.
 
---- @alias Result {success:true}|{success:false,reason:string}
+--- @alias Result {success:true}|{success:false,reason:string}|{skipped:true,reason:string}
 
 --- Every test registered with `Balatest.TestPlay`.
 --- @type TestPlay[]
@@ -127,6 +131,24 @@ function Balatest.TestPlay(settings)
     Balatest.test_order[#Balatest.test_order + 1] = settings.name
 end
 
+--- Tests whether a test should be skipped.
+--- @param t string The test to consider.
+--- @return string? `nil`, or the reason why this test should be skipped.
+function Balatest.should_skip(t)
+    local test = Balatest.tests[t]
+    if test.skip then
+        local r = test.skip()
+        if r then
+            return type(r) == "boolean" and "The user-defined skip function" or r
+        end
+    end
+    for _, m in pairs(type(test.required_mods) == "string" and { test.required_mods } or test.required_mods or {}) do
+        if not next(SMODS.find_mod(m)) then
+            return "Required mod " .. m .. " was not loaded."
+        end
+    end
+end
+
 --- Runs a suite of tests. If no parameters are given, runs every registered test.
 --- @param mod? string The mod to run tests from.
 --- @param category? string The category to run tests from.
@@ -165,10 +187,25 @@ function Balatest.run_tests(mod, category)
         end
     end
 
+    local skip_count = 0
+    local real_todo = {}
+    for _, v in ipairs(todo) do
+        local should_skip = Balatest.should_skip(v)
+        if should_skip then
+            skip_count = skip_count + 1
+            Balatest.done[Balatest.tests[v].name] = { skipped = true, reason = should_skip }
+        else
+            real_todo[#real_todo + 1] = v
+        end
+    end
+    todo = real_todo
+
     Balatest.done_count = 0
     local prev_speed = G.SETTINGS.GAMESPEED
     G.SETTINGS.GAMESPEED = 65536
-    sendInfoMessage('Running ' .. #todo .. ' tests...', 'Balatest')
+    sendInfoMessage(
+        'Running ' .. #todo .. ' tests...' .. (skip_count ~= 0 and (' (' .. skip_count .. ' skipped)') or ''),
+        'Balatest')
     for _, v in ipairs(todo) do
         Balatest.run_test(Balatest.tests[v])
     end
@@ -187,7 +224,10 @@ function Balatest.run_tests(mod, category)
                 end
             end
             sendInfoMessage(Balatest.done_count .. ' tests ran.', 'Balatest')
-            sendInfoMessage(pass .. ' succeeded, ' .. fail .. ' failed.', 'Balatest')
+            sendInfoMessage(
+                pass ..
+                ' succeeded, ' .. fail .. ' failed' .. (skip_count == 0 and '.' or (', ' .. skip_count .. ' skipped.')),
+                'Balatest')
             G.SETTINGS.GAMESPEED = prev_speed
             return true
         end
