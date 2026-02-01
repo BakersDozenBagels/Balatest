@@ -57,7 +57,7 @@ SMODS.Challenges.Balatest_Test_Runner = SMODS.Challenges.Balatest_Test_Runner or
 
 G.E_MANAGER.queues.Balatest = {}
 G.E_MANAGER.queues.Balatest_Run = {}
-local abort
+local abort, kill
 local function protect(f, t)
     return function()
         if not t and abort then return true end
@@ -68,6 +68,9 @@ local function protect(f, t)
 end
 local function protect_ev(f, t)
     if type(f) == "table" then
+        if getmetatable(f) ~= Event then
+            f = Event(f)
+        end
         f.func = protect(f.func, t)
     elseif type(f) == "function" then
         f = Event { no_delete = true, func = protect(f, t) }
@@ -216,8 +219,10 @@ function Balatest.run_tests(mod, category)
             if Balatest.done_count ~= #todo then return false end
 
             local pass, fail = 0, 0
+            skip_count = 0
             for _, v in pairs(Balatest.done) do
                 if v.skipped then
+                    skip_count = skip_count + 1
                 elseif v.success then
                     pass = pass + 1
                 else
@@ -250,6 +255,10 @@ function Balatest.run_test(test, after, count)
     local test_done = false
     local pre_fail = false
     tq(function()
+        if kill then
+            abort = kill
+            return
+        end
         abort = nil
         if test.requires then
             sendWarnMessage('requires (on test ' .. test.name ..
@@ -350,6 +359,7 @@ function Balatest.run_test(test, after, count)
 
         Balatest.q(function()
             if abort then return end
+            Balatest.wait()
             Balatest.q(function()
                 if abort then return end
                 if not Balatest.done[test.name] then
@@ -371,7 +381,10 @@ function Balatest.run_test(test, after, count)
     end)
     tq(function()
         if pre_fail and not abort then return end
-        if abort and not Balatest.done[test.name] then
+        if kill and not Balatest.done[test.name] then
+            Balatest.done[test.name] = { skipped = true, reason = kill }
+            Balatest.done_count = Balatest.done_count + 1
+        elseif abort and not Balatest.done[test.name] then
             Balatest.done[test.name] = { success = false, reason = type(abort) == 'string' and abort or 'Aborted' }
             Balatest.done_count = Balatest.done_count + 1
         elseif not Balatest.done[test.name] then
@@ -381,11 +394,13 @@ function Balatest.run_test(test, after, count)
         if after then
             after(test.name, Balatest.done[test.name])
         else
-            (Balatest.done[test.name].success and sendInfoMessage or sendErrorMessage)(
-                    'Test ' ..
-                    test.name ..
-                    (Balatest.done[test.name].success and ' passed.' or (' failed with: ' .. Balatest.done[test.name].reason)),
-                    'Balatest')
+            if Balatest.done[test.name].skipped then
+                sendWarnMessage('Test ' .. test.name .. ' skipped: ' .. Balatest.done[test.name].reason, 'Balatest')
+            elseif Balatest.done[test.name].success then
+                sendInfoMessage('Test ' .. test.name .. ' passed.', 'Balatest')
+            else
+                sendErrorMessage('Test ' .. test.name .. ' failed with: ' .. Balatest.done[test.name].reason, 'Balatest')
+            end
         end
         Balatest.current_test = nil
         Balatest.current_test_object = nil
@@ -395,6 +410,15 @@ function Balatest.run_test(test, after, count)
     end)
     tq(function()
         G.E_MANAGER.queues.Balatest_Run = {}
+    end)
+end
+
+--- Stops the current test batch.
+function Balatest.kill()
+    kill = "Tests were killed"
+    abort = kill
+    tq(function()
+        kill = nil
     end)
 end
 
