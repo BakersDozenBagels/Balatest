@@ -217,7 +217,8 @@ function Balatest.run_tests(mod, category)
 
             local pass, fail = 0, 0
             for _, v in pairs(Balatest.done) do
-                if v.success then
+                if v.skipped then
+                elseif v.success then
                     pass = pass + 1
                 else
                     fail = fail + 1
