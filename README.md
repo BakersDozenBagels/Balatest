@@ -95,6 +95,7 @@ Balatest will run each test with the following defaults:
 - Inspect `Balatest.done` for more detailed results of your tests.
 - Use `required_mods = { 'Talisman' }` to skip a test if Talisman is not installed.
 - Use `skip = function()` to specify custom conditions for when to skip a test.
+- Use `Balatest.kill()` to stop running a batch of tests.
 
 ## `Balatest.hook`
 
