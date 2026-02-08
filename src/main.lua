@@ -77,6 +77,7 @@ local function protect_ev(f, t)
     else
         error("Expected a function or event, got a " .. type(f), 3)
     end
+    f.created_on_pause = true
     return f
 end
 local function tq(f, front)
@@ -564,7 +565,7 @@ end
 
 --- Plays a hand with the specified cards in the specified order.
 --- @param cards Cards
---- @param expect_loss boolean Set this to `true` if this hand should lose the run.
+--- @param expect_loss boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 2 seconds.
 function Balatest.play_hand(cards, expect_loss)
     Balatest.q(function()
         select(cards)
@@ -572,7 +573,22 @@ function Balatest.play_hand(cards, expect_loss)
         G.FUNCS.play_cards_from_highlighted()
     end)
     if expect_loss then
-        Balatest.wait()
+        local timeout = type(expect_loss) == "boolean" and 2 or expect_loss
+        local blame = debug.getinfo(2, "Sl")
+        Balatest.q {
+            blocking = false,
+            timer = 'REAL',
+            trigger = 'after',
+            delay = timeout,
+            func = function()
+                abort = string.format(
+                    '[%s]:%d Expected the game to be lost within %d seconds',
+                    blame.source, blame.currentline, timeout)
+            end
+        }
+        Balatest.q(function()
+            return G.STATE == G.STATES.GAME_OVER and G.STATE_COMPLETE
+        end)
     else
         wait_for_input()
     end
