@@ -564,13 +564,18 @@ end
 
 --- Plays a hand with the specified cards in the specified order.
 --- @param cards Cards
-function Balatest.play_hand(cards)
+--- @param expect_loss boolean Set this to `true` if this hand should lose the run.
+function Balatest.play_hand(cards, expect_loss)
     Balatest.q(function()
         select(cards)
         if abort then return end
         G.FUNCS.play_cards_from_highlighted()
     end)
-    wait_for_input()
+    if expect_loss then
+        Balatest.wait()
+    else
+        wait_for_input()
+    end
 end
 
 --- Discards the specified cards.
