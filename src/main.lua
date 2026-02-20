@@ -565,7 +565,7 @@ end
 
 --- Plays a hand with the specified cards in the specified order.
 --- @param cards Cards
---- @param expect_loss boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 2 seconds.
+--- @param expect_loss? boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 2 seconds.
 function Balatest.play_hand(cards, expect_loss)
     Balatest.q(function()
         select(cards)
