@@ -5,6 +5,7 @@ Balatest.internal = {}
 assert(SMODS.load_file 'src/testplay.lua')()
 assert(SMODS.load_file 'src/events.lua')()
 assert(SMODS.load_file 'src/assertions.lua')()
+assert(SMODS.load_file 'src/cli.lua')()
 
 --- @alias Result {success:true}|{success:false,reason:string?}|{skipped:true,reason:string}
 
@@ -34,9 +35,6 @@ Balatest.current_test_object = nil
 
 SMODS.Challenges = SMODS.Challenges or {}
 SMODS.Challenges.Balatest_Test_Runner = SMODS.Challenges.Balatest_Test_Runner or { calculate = function() end }
-
-G.E_MANAGER.queues.Balatest = {}
-G.E_MANAGER.queues.Balatest_Run = {}
 
 ---@type string|true? The reason why the current test should fail.
 Balatest.internal.abort = nil

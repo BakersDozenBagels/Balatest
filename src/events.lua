@@ -1,3 +1,6 @@
+G.E_MANAGER.queues.Balatest = {}
+G.E_MANAGER.queues.Balatest_Run = {}
+
 local function protect(f, t)
     return function()
         if not t and Balatest.internal.abort then return true end
