@@ -24,7 +24,6 @@ local function parse_args()
     local mod = nil
     local category = nil
     for _, v in ipairs(arg) do
-        print(v)
         if v == "--balatest-run-tests" then
             if run ~= 0 and run ~= 1 then
                 error("Invalid Balatest CLI arguments")
