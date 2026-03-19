@@ -279,7 +279,7 @@ function Balatest.buy(func)
 end
 
 --- Redeems a voucher from the shop.
---- @param func fun(): Voucher The function to determine the voucher to redeem.
+--- @param func fun(): SMODS.Voucher The function to determine the voucher to redeem.
 function Balatest.redeem(func)
     Balatest.q(function()
         func():redeem()
@@ -288,7 +288,7 @@ function Balatest.redeem(func)
 end
 
 --- Opens a booster from the shop.
---- @param func fun(): Booster The function to determine the booster to open.
+--- @param func fun(): SMODS.Booster The function to determine the booster to open.
 function Balatest.open(func)
     Balatest.q(function()
         func():open()
