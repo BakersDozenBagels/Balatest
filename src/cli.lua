@@ -19,7 +19,7 @@ end)
 Balatest.internal.tq(function() return done end)
 
 -- Arguments use colons because Lovely complains about equals
-function parse_args()
+local function parse_args()
     local run = 0
     local mod = nil
     local category = nil

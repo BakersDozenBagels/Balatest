@@ -150,3 +150,14 @@ Balatest.run_test {
 Here, we hook the same function twice. Note that when the second hook is applied, the first hook gets removed.
 Also note that the application of the hook is queued.
 After running these tests, even if they fail, the function will be what it was originally.
+
+## CLI
+
+Balatest will parse command line arguments to run test upon launching the game. The following forms are accepted:
+```sh
+Balatro.exe --balatest-run-tests
+Balatro.exe --balatest-run-tests:<Mod_Id>
+Balatro.exe --balatest-run-tests:<Mod_Id> --balatest-category:<Category_Name>
+Balatro.exe --balatest-run-test:<Test_Name>
+```
+When run like this, the game will automatically close after running tests or after a crash.
