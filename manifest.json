@@ -4,7 +4,7 @@
   "author": ["BakersDozenBagels"],
   "description": "TDD framework for Balatro.",
   "prefix": "Balatest",
-  "main_file": "src/main.lua",
+  "main_file": "src/core.lua",
   "priority": -1000,
   "badge_colour": "EDD198",
   "badge_text_colour": "362708",
