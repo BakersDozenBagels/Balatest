@@ -44,7 +44,7 @@ function Balatest.TestPlay(settings)
         Balatest.tests_by_mod_and_category[mod][cat][settings.name] = true
     end
     Balatest.test_order[#Balatest.test_order + 1] = settings.name
-    settings.run_test = settings.run_test or Balatest.run_test_play
+    settings.run_test = settings.run_test or Balatest.internal.run_test_play
 end
 
 --- Tests whether a test should be skipped.
@@ -67,7 +67,7 @@ end
 
 --- Runs a TestPlay.
 ---@param self TestPlay
-function Balatest.run_test_play(self)
+function Balatest.internal.run_test_play(self)
     local test_done = false
     Balatest.internal.tq(function()
         if Balatest.internal.abort then

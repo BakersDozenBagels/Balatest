@@ -45,7 +45,7 @@ end
 --- @param front boolean? Forwarded to `Balatest.q`.
 function Balatest.wait_for_input(state, front)
     Balatest.q(function()
-        return abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
+        return Balatest.internal.abort or ((not state or G.STATE == state) and not G.CONTROLLER.locked and
             not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
     end, front)
     Balatest.wait()
@@ -55,29 +55,13 @@ end
 ---@param with_blind? string The blind to go to.
 function Balatest.start_round(with_blind)
     Balatest.q(function()
-        if abort then return end
+        if Balatest.internal.abort then return end
         G.FUNCS.select_blind {
             config = { ref_table = G.P_BLINDS[with_blind or Balatest.current_test_object.blind or 'bl_small'] },
             UIBox = { get_UIE_by_ID = function() end }
         }
     end)
     Balatest.wait_for_input(G.STATES.SELECTING_HAND)
-    -- local done = false
-    -- Balatest.q(function()
-    --     if abort then return true end
-    --     local count = #G.deck.cards
-    --     for i = 1, count do
-    --         draw_card(G.deck, G.hand, i * 100 / count, 'up', true)
-    --     end
-    --     G.E_MANAGER:add_event(Event { func = function()
-    --         done = true
-    --         return true
-    --     end })
-    --     return true
-    -- end)
-    -- Balatest.q(function()
-    --     return abort or done
-    -- end)
 end
 
 --- Skips the next blind for the specified tag.
@@ -85,7 +69,7 @@ end
 function Balatest.skip_blind(for_tag)
     Balatest.wait_for_input(G.STATES.BLIND_SELECT)
     Balatest.q(function()
-        if abort then return end
+        if Balatest.internal.abort then return end
         G.FUNCS.skip_blind { UIBox = { get_UIE_by_ID = function() return { config = { ref_table = Tag(for_tag) } } end } }
     end)
     Balatest.wait_for_input(G.STATES.BLIND_SELECT)
@@ -95,7 +79,7 @@ end
 function Balatest.end_round()
     Balatest.wait_for_input()
     Balatest.q(function()
-        if abort then return end
+        if Balatest.internal.abort then return end
         G.GAME.chips = G.GAME.blind.chips
         G.STATE = G.STATES.NEW_ROUND
         G.STATE_COMPLETE = false
@@ -106,7 +90,7 @@ end
 --- Cashes out from the results screen and goes to the shop.
 function Balatest.cash_out()
     Balatest.q(function()
-        if abort then return end
+        if Balatest.internal.abort then return end
         G.FUNCS.cash_out { config = {} }
     end)
     Balatest.wait_for_input()
@@ -115,7 +99,7 @@ end
 --- Exits the shop and goes to the blind select screen.
 function Balatest.exit_shop()
     Balatest.q(function()
-        if abort then return end
+        if Balatest.internal.abort then return end
         G.FUNCS.toggle_shop()
     end)
     Balatest.wait_for_input(G.STATES.BLIND_SELECT)
@@ -165,7 +149,7 @@ local ranks = {
 }
 
 local function select(cards)
-    if abort then return end
+    if Balatest.internal.abort then return end
     local used = {}
     for _, v in ipairs(cards) do
         local rank = ranks[v:sub(1, -2)]
@@ -179,7 +163,7 @@ local function select(cards)
             end
         end
         if bad then
-            abort = 'A card (' .. v .. ') was not in hand, but it needed to be played.'
+            Balatest.internal.abort = 'A card (' .. v .. ') was not in hand, but it needed to be played.'
         end
     end
     for k, v in ipairs(used) do
@@ -197,7 +181,7 @@ end
 function Balatest.play_hand(cards, expect_loss)
     Balatest.q(function()
         select(cards)
-        if abort then return end
+        if Balatest.internal.abort then return end
         G.FUNCS.play_cards_from_highlighted()
     end)
     if expect_loss then
@@ -209,7 +193,7 @@ function Balatest.play_hand(cards, expect_loss)
             trigger = 'after',
             delay = timeout,
             func = function()
-                abort = string.format(
+                Balatest.internal.abort = string.format(
                     '[%s]:%d Expected the game to be lost within %d seconds',
                     blame.source, blame.currentline, timeout)
             end
@@ -227,7 +211,7 @@ end
 function Balatest.discard(cards)
     Balatest.q(function()
         select(cards)
-        if abort then return end
+        if Balatest.internal.abort then return end
         G.FUNCS.discard_cards_from_highlighted()
     end)
     Balatest.wait_for_input(G.STATES.SELECTING_HAND)
@@ -315,7 +299,7 @@ local hooks = setmetatable({}, { __mode = 'k' })
 function Balatest.hook_raw(obj, name, new)
     local prev = obj[name]
     Balatest.q(function()
-        if abort then return end
+        if Balatest.internal.abort then return end
         obj[name] = new
     end)
 
