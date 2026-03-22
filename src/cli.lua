@@ -67,7 +67,7 @@ G.E_MANAGER:add_event(Event {
 
         if run ~= 1 and run ~= 2 then
             love.errorhandler = raw_love_errorhandler
-            return
+            return true
         end
 
         if run == 1 then
