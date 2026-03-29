@@ -44,7 +44,8 @@ Balatest.internal.kill = nil
 --- Runs a suite of tests. If no parameters are given, runs every registered test.
 --- @param mod? string The mod to run tests from.
 --- @param category? string The category to run tests from.
-function Balatest.run_tests(mod, category)
+--- @param after? fun(test_name: string, result: Result) The result handler for these tests. If unset, defaults to a simple logger.
+function Balatest.run_tests(mod, category, after)
     local todo = {}
     local allowed = nil
     if category then
@@ -99,7 +100,7 @@ function Balatest.run_tests(mod, category)
         'Running ' .. #todo .. ' tests...' .. (skip_count ~= 0 and (' (' .. skip_count .. ' skipped)') or ''),
         'Balatest')
     for _, v in ipairs(todo) do
-        Balatest.run_test(Balatest.tests[v])
+        Balatest.run_test(Balatest.tests[v], after)
     end
     Balatest.internal.tq(Event {
         blocking = false,

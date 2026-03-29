@@ -49,6 +49,22 @@ local function parse_args()
     return run, mod, category
 end
 
+-- Doesn't properly handle U+0020 or below, but who cares
+local function json_escape(str)
+    return (str or ""):gsub('\\', '\\\\'):gsub('"', '\\"')
+end
+
+--- @param test string
+--- @param res Result
+local function json_log(test, res)
+    sendInfoMessage(
+        '{"test":"' .. json_escape(test) ..
+        '","skipped":' .. (res.skipped and 'true' or 'false') ..
+        ',"success":' .. (res.success and 'true' or 'false') ..
+        ',"reason":"' .. json_escape(res.reason) .. '"}',
+        "Balatest")
+end
+
 -- Don't tq this so `error()`s will crash
 G.E_MANAGER:add_event(Event {
     no_delete = true,
@@ -71,9 +87,12 @@ G.E_MANAGER:add_event(Event {
             if category and not mod then
                 error("Invalid Balatest CLI arguments")
             end
-            Balatest.run_tests(mod, category)
+            Balatest.run_tests(mod, category, json_log)
+            for k, v in pairs(Balatest.done) do
+                json_log(k, v)
+            end
         elseif run == 2 then
-            Balatest.run_test(mod)
+            Balatest.run_test(mod, json_log)
         end
 
         Balatest.internal.tq(function()
