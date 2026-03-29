@@ -2,17 +2,13 @@
 local done = false
 Balatest.internal.tq(function()
     local function recurse(d)
-        G.E_MANAGER:add_event(Event {
-            no_delete = true,
-            func = function()
-                if d == 0 then
-                    done = true
-                else
-                    recurse(d - 1)
-                end
-                return true
+        Balatest.q(function()
+            if d == 0 then
+                done = true
+            else
+                recurse(d - 1)
             end
-        })
+        end)
     end
     recurse(5)
 end)
@@ -56,6 +52,7 @@ end
 -- Don't tq this so `error()`s will crash
 G.E_MANAGER:add_event(Event {
     no_delete = true,
+    created_on_pause = true,
     func = function()
         local raw_love_errorhandler = love.errorhandler
         function love.errorhandler(msg)
