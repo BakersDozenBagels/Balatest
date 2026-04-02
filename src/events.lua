@@ -54,6 +54,7 @@ end
 --- Starts the next blind from the blind select screen.
 ---@param with_blind? string The blind to go to.
 function Balatest.start_round(with_blind)
+    Balatest.wait_for_input(G.STATES.BLIND_SELECT)
     Balatest.q(function()
         if Balatest.internal.abort then return end
         G.FUNCS.select_blind {
