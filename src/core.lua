@@ -153,6 +153,7 @@ function Balatest.run_test(test, after)
         return
     end
     if not test.name then test.name = 'temporary' end
+    if not test.run_test then test = Balatest.TestPlay(test) end
 
     Balatest.internal.tq(function()
         Balatest.done[test.name] = nil

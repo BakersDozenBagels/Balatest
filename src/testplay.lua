@@ -45,6 +45,7 @@ function Balatest.TestPlay(settings)
     end
     Balatest.test_order[#Balatest.test_order + 1] = settings.name
     settings.run_test = settings.run_test or Balatest.internal.run_test_play
+    return settings
 end
 
 --- Tests whether a test should be skipped.
