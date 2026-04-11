@@ -90,6 +90,7 @@ end
 
 --- Cashes out from the results screen and goes to the shop.
 function Balatest.cash_out()
+    Balatest.wait(2)
     Balatest.q(function()
         if Balatest.internal.abort then return end
         G.FUNCS.cash_out { config = {} }
@@ -338,6 +339,7 @@ end
 
 --- Reloads the game as though the player saved, quit, and continued.
 function Balatest.reload()
+    Balatest.wait_for_input()
     Balatest.q(function()
         G.E_MANAGER:clear_queue()
         G.E_MANAGER:add_event(Event {
@@ -357,6 +359,7 @@ function Balatest.reload()
         })
     end)
     Balatest.wait_for_input()
+    Balatest.wait(2)
 end
 
 --- Waits for the standard event queue to complete.
