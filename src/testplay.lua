@@ -131,6 +131,7 @@ function Balatest.internal.run_test_play(self)
             func = function()
                 -- No idea why this needs to be here.
                 G.TAROT_INTERRUPT = nil
+                G.GAME.viewed_back = args.deck
                 G:start_run(args)
                 return true
             end
