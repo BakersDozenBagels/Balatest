@@ -12,7 +12,7 @@
 --- @field hands? integer The amount of hands to start with. Defaults to `999`.
 --- @field hand_size? integer The amount of hand size to start with. Defaults to `999`.
 --- @field modifiers? {id:string,value?:any}[] The challenge modifiers to set. Corresponds to `challenge.rules.modifiers`.
---- @field custom? {id:string,value?:any}[] The challenge rules to set. Corresponds to `challenge.rules.custom`. By default, `'no_reward'`, `'no_interest'`, `'no_extra_hand_money'`, and `'money_per_discard' = 0` are set.
+--- @field custom_rules? {id:string,value?:any}[] The challenge rules to set. Corresponds to `challenge.rules.custom`. By default, `'no_reward'`, `'no_interest'`, `'no_extra_hand_money'`, and `'money_per_discard' = 0` are set.
 --- @field deck? table|{type?:string|"Challenge Deck",cards?:table[],yes_ranks?:table<string,true>,yes_suits?:table<string,true>,no_ranks?:table<string,true>,no_suits?:table<string,true>,enhancement?:string,edition?:string,seal?:string} The starting deck of cards. Corresponds to `challenge.deck`.
 --- @field blind? string The only blind which will spawn for this test. Defaults to `'bl_small'`.
 --- @field no_auto_start? boolean Set this to true to skip automatically entering the first blind.

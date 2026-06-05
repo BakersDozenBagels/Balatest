@@ -25,7 +25,7 @@ local function protect_ev(f, t)
 end
 
 --- Queues a test-level event. Works similarly to `Balatest.q()`.
---- @param f (fun():boolean?)|Event The event or a function to run turn into an event.
+--- @param f (fun():boolean?)|Event The event or a function to turn into an event.
 --- @param front boolean|nil `true` to add the event to the front of the queue, rather than the end.
 function Balatest.internal.tq(f, front)
     G.E_MANAGER:add_event(protect_ev(f, true), 'Balatest', front)
@@ -33,7 +33,7 @@ end
 
 --- Queues an event to be run during this test.
 --- Note that events added this way implicitly `return true` unless you explicitly `return false`, unlike the vanilla ones.
---- @param f (fun():boolean?)|Event The event or a function to run turn into an event.
+--- @param f (fun():boolean?)|Event The event or a function to turn into an event.
 --- @param front boolean|nil `true` to add the event to the front of the queue, rather than the end.
 function Balatest.q(f, front)
     G.E_MANAGER:add_event(protect_ev(f), 'Balatest_Run', front)
@@ -296,7 +296,7 @@ Balatest.internal.hook_count = 0
 local hooks = setmetatable({}, { __mode = 'k' })
 --- Hooks an arbitrary value. The hook is applied in queue and is reset at the end of the test.
 --- @param obj table The object to hook.
---- @param name any The key withing the object to hook.
+--- @param name any The key within the object to hook.
 --- @param new any The new value.
 function Balatest.hook_raw(obj, name, new)
     local prev = obj[name]
@@ -326,9 +326,9 @@ function Balatest.hook_raw(obj, name, new)
     end
 end
 
---- Hooks an function. The hook is applied in queue and is reset at the end of the test.
+--- Hooks a function. The hook is applied in queue and is reset at the end of the test.
 --- @param obj table The object to hook.
---- @param name any The key withing the object to hook.
+--- @param name any The key within the object to hook.
 --- @param func fun(orig: function, ...) The new function. The original function is passed as the first parameter.
 function Balatest.hook(obj, name, func)
     local prev = obj[name]

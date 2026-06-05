@@ -38,7 +38,7 @@ SMODS.Challenges.Balatest_Test_Runner = SMODS.Challenges.Balatest_Test_Runner or
 
 ---@type string|true? The reason why the current test should fail.
 Balatest.internal.abort = nil
----@type string? The reason why the use `Balatest.kill()`ed this test.
+---@type string? The reason why the user `Balatest.kill()`ed this test.
 Balatest.internal.kill = nil
 
 --- Runs a suite of tests. If no parameters are given, runs every registered test.
