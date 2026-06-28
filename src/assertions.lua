@@ -9,8 +9,8 @@ function Balatest.assert(bool, message, level)
 end
 
 --- Asserts that two numbers are equal. Handles Talisman jank for you.
---- @param a number The tested value.
---- @param b number The expected value.
+--- @param a any The tested value.
+--- @param b any The expected value.
 --- @param message? string The message to use if the assertion fails.
 --- @param level? integer The depth of this call. Use this in assertion libraries to point the blame higher in the callstack.
 function Balatest.assert_eq(a, b, message, level)
