@@ -178,11 +178,11 @@ end
 --- @alias Cards string[]
 
 --- Plays a hand with the specified cards in the specified order.
---- @param cards Cards
+--- @param cards Cards|fun(): Cards The cards to play or a function to determine the cards to play.
 --- @param expect_loss? boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 2 seconds.
 function Balatest.play_hand(cards, expect_loss)
     Balatest.q(function()
-        select(cards)
+        select(type(cards) == 'function' and cards() or cards)
         if Balatest.internal.abort then return end
         G.FUNCS.play_cards_from_highlighted()
     end)
@@ -209,10 +209,10 @@ function Balatest.play_hand(cards, expect_loss)
 end
 
 --- Discards the specified cards.
---- @param cards Cards
+--- @param cards Cards|fun(): Cards The cards to discard or a function to determine the cards to discard.
 function Balatest.discard(cards)
     Balatest.q(function()
-        select(cards)
+        select(type(cards) == 'function' and cards() or cards)
         if Balatest.internal.abort then return end
         G.FUNCS.discard_cards_from_highlighted()
     end)
@@ -220,10 +220,10 @@ function Balatest.discard(cards)
 end
 
 --- Highlights the specified cards in the specified order.
---- @param cards Cards
+--- @param cards Cards|fun(): Cards The cards to highlight or a function to determine the cards to highlight.
 function Balatest.highlight(cards)
     Balatest.q(function()
-        select(cards)
+        select(type(cards) == 'function' and cards() or cards)
     end)
     Balatest.wait_for_input()
 end
