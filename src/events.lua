@@ -309,9 +309,15 @@ end
 
 --- Opens a booster from the shop.
 --- @param func fun(): SMODS.Booster The function to determine the booster to open.
+Balatest.open = Balatest.use
 function Balatest.open(func)
+	Balatest.use(func)
+end
+
+--- Skips the currently open booster pack.
+function Balatest.skip_booster()
 	Balatest.q(function()
-		func():open()
+		G.FUNCS.skip_booster({})
 	end)
 	Balatest.wait_for_input()
 end

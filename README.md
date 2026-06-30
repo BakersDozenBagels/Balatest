@@ -29,7 +29,8 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.use(card, instant)` uses a consumable. E.g. `Balatest.use(G.consumeables.cards[1])` (you can also pass a function as in `buy`)
 - `Balatest.buy(func)` buys something from the shop. E.g. `Balatest.buy(function() return G.shop_jokers.cards[1] end)`
 - `Balatest.redeem(func)` redeems a voucher. E.g. `Balatest.redeem(function() return G.shop_vouchers.cards[1] end)`
-- `Balatest.open(func)` opens a booster. E.g. `Balatest.open(function() return G.shop_booster.cards[1] end)`
+- `Balatest.open(func)` opens a booster. E.g. `Balatest.open(function() return G.shop_booster.cards[1] end)`. Pull a card with `Balatest.use(function() return G.pack_cards.cards[1] end)`
+- `Balatest.skip_booster()` skips a booster.
 - `Balatest.sell(func)` sells a card. E.g. `Balatest.sell(function() return G.jokers.cards[1] end)`
 - `Balatest.hook(obj, name, func)` hooks a function until the test concludes. See below for more information.
 - `Balatest.hook_raw(obj, name, new)` overwrites an object until the test concludes.
