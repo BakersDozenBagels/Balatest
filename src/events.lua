@@ -301,10 +301,7 @@ end
 --- Redeems a voucher from the shop.
 --- @param func fun(): SMODS.Voucher The function to determine the voucher to redeem.
 function Balatest.redeem(func)
-	Balatest.q(function()
-		func():redeem()
-	end)
-	Balatest.wait_for_input()
+	Balatest.use(func)
 end
 
 --- Opens a booster from the shop.
