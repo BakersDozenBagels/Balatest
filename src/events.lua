@@ -323,7 +323,7 @@ end
 --- @param card Card|fun(): Card The card to sell or a function to determine the card to sell.
 function Balatest.sell(card)
 	Balatest.q(function()
-		(type(card) == "function" and card() or card):sell_card()
+		G.FUNCS.sell_card({ config = { ref_table = type(card) == "function" and card() or card } })
 	end)
 	Balatest.wait_for_input()
 end
