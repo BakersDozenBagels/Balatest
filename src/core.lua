@@ -119,10 +119,10 @@ function Balatest.run_tests(mod, category, after)
 
 			local pass, fail = 0, 0
 			skip_count = 0
-			for _, v in pairs(Balatest.done) do
-				if v.skipped then
+			for _, v in ipairs(todo) do
+				if Balatest.done[v].skipped then
 					skip_count = skip_count + 1
-				elseif v.success then
+				elseif Balatest.done[v].success then
 					pass = pass + 1
 				else
 					fail = fail + 1
