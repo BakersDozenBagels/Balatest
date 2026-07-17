@@ -205,7 +205,7 @@ end
 
 --- Plays a hand with the specified cards in the specified order.
 --- @param cards Cards|fun(): Cards The cards to play or a function to determine the cards to play.
---- @param expect_loss? boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 2 seconds.
+--- @param expect_loss? boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 3 seconds.
 function Balatest.play_hand(cards, expect_loss)
 	Balatest.q(function()
 		select(type(cards) == "function" and cards() or cards)
@@ -215,7 +215,7 @@ function Balatest.play_hand(cards, expect_loss)
 		G.FUNCS.play_cards_from_highlighted()
 	end)
 	if expect_loss then
-		local timeout = type(expect_loss) == "boolean" and 2 or expect_loss
+		local timeout = type(expect_loss) == "boolean" and 3 or expect_loss
 		local blame = debug.getinfo(2, "Sl")
 		Balatest.q({
 			blocking = false,
