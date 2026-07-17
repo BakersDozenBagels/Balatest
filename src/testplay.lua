@@ -28,6 +28,9 @@ function Balatest.TestPlay(settings)
 	local mod = SMODS.current_mod and SMODS.current_mod.id or ""
 	settings.name = ((SMODS.current_mod and mod .. "_") or "")
 		.. (settings.name or ("unnamed_" .. (#Balatest.tests + 1)))
+	if Balatest.tests[settings.name] then
+		sendErrorMessage("Test " .. settings.name .. " registered twice", "Balatest")
+	end
 	settings.category = settings.category or {}
 	if type(settings.category) == "string" then
 		settings.category = { settings.category }
