@@ -4,7 +4,7 @@
 --- @field back? string The deck to use. Defaults to `'Red Deck'`.
 --- @field stake? integer|string The stake to use. Defaults to `1`.
 --- @field seed? string The seed to use. Use `nil` for a random seed.
---- @field jokers? string[] The jokers to start with.
+--- @field jokers? (string|{id:string,edition?:string})[] The jokers to start with.
 --- @field consumeables? string[] The consumables to start with.
 --- @field vouchers? string[] The vouchers to start with.
 --- @field dollars? integer The amount of money to start with. Defaults to `0`.

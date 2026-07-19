@@ -45,30 +45,57 @@ end
 
 --- @alias State number A state in G.STATES
 --- Queues an event to wait for manual input to be possible.
---- @param state State? If set, also waits for the game to reach this state.
+--- @param state (State|State[])? If set, also waits for the game to reach this state or one of these states.
 --- @param front boolean? Forwarded to `Balatest.q`.
 function Balatest.wait_for_input(state, front)
 	Balatest.q(function()
+		local state_done = G.STATE_COMPLETE
+		if type(state) == "number" then
+			state_done = G.STATE == state and G.STATE_COMPLETE
+		elseif type(state) == "table" then
+			state_done = false
+			for _, s in pairs(state) do
+				if G.STATE == s then
+					state_done = G.STATE_COMPLETE
+				end
+			end
+		end
 		return Balatest.internal.abort
-			or (
-				(not state or G.STATE == state)
-				and not G.CONTROLLER.locked
-				and not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0)
-			)
+			or (state_done and not G.CONTROLLER.locked and not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0))
 	end, front)
-	Balatest.wait()
+end
+
+--- Waits until the specified function does not return `nil`.
+---@generic T any The type returned.
+---@param func T|fun():T The funtion to wait on.
+---@return fun():T A new function that returns the non-nil value generated.
+function Balatest.internal.ensure_not_nil(func)
+	if type(func) ~= "function" then
+		return function()
+			return func
+		end
+	end
+	local ret = nil
+	Balatest.q(function()
+		ret = func()
+		return ret ~= nil
+	end)
+	return function()
+		return ret
+	end
 end
 
 --- Starts the next blind from the blind select screen.
----@param with_blind? string The blind to go to.
+---@param with_blind? string|fun():string The blind to go to.
 function Balatest.start_round(with_blind)
 	Balatest.wait_for_input(G.STATES.BLIND_SELECT)
+	with_blind = Balatest.internal.ensure_not_nil(with_blind)
 	Balatest.q(function()
 		if Balatest.internal.abort then
 			return
 		end
 		G.FUNCS.select_blind({
-			config = { ref_table = G.P_BLINDS[with_blind or Balatest.current_test_object.blind or "bl_small"] },
+			config = { ref_table = G.P_BLINDS[with_blind() or Balatest.current_test_object.blind or "bl_small"] },
 			UIBox = { get_UIE_by_ID = function() end },
 		})
 	end)
@@ -76,9 +103,10 @@ function Balatest.start_round(with_blind)
 end
 
 --- Skips the next blind for the specified tag.
---- @param for_tag string The tag ID that will spawn.
+--- @param for_tag string|fun():string The tag ID that will spawn.
 function Balatest.skip_blind(for_tag)
 	Balatest.wait_for_input(G.STATES.BLIND_SELECT)
+	for_tag = Balatest.internal.ensure_not_nil(for_tag)
 	Balatest.q(function()
 		if Balatest.internal.abort then
 			return
@@ -86,7 +114,7 @@ function Balatest.skip_blind(for_tag)
 		G.FUNCS.skip_blind({
 			UIBox = {
 				get_UIE_by_ID = function()
-					return { config = { ref_table = Tag(for_tag) } }
+					return { config = { ref_table = Tag(for_tag()) } }
 				end,
 			},
 		})
@@ -96,9 +124,9 @@ end
 
 --- Ends the current round as though the blind was won and goes to the results screen.
 function Balatest.end_round()
-	Balatest.wait_for_input()
+	Balatest.wait_for_input({ G.STATES.SELECTING_HAND, G.STATES.ROUND_EVAL })
 	Balatest.q(function()
-		if Balatest.internal.abort then
+		if Balatest.internal.abort or G.STATE == G.STATES.ROUND_EVAL then
 			return
 		end
 		G.GAME.chips = G.GAME.blind.chips
@@ -110,18 +138,19 @@ end
 
 --- Cashes out from the results screen and goes to the shop.
 function Balatest.cash_out()
-	Balatest.wait(2)
+	Balatest.wait_for_input(G.STATES.ROUND_EVAL)
 	Balatest.q(function()
 		if Balatest.internal.abort then
 			return
 		end
 		G.FUNCS.cash_out({ config = {} })
 	end)
-	Balatest.wait_for_input()
+	Balatest.wait_for_input(G.STATES.SHOP)
 end
 
 --- Exits the shop and goes to the blind select screen.
 function Balatest.exit_shop()
+	Balatest.wait_for_input(G.STATES.SHOP)
 	Balatest.q(function()
 		if Balatest.internal.abort then
 			return
@@ -132,7 +161,7 @@ function Balatest.exit_shop()
 end
 
 --- Ends the round and navigates to the next one.
----@param with_blind? string The blind to go to.
+---@param with_blind? string|fun():string The blind to go to.
 function Balatest.next_round(with_blind)
 	Balatest.end_round()
 	Balatest.cash_out()
@@ -174,7 +203,9 @@ local ranks = {
 	["1"] = "Ace",
 }
 
-local function select(cards)
+--- Selects the specified cards.
+--- @param cards Cards the cards to select.
+function Balatest.internal.select(cards)
 	if Balatest.internal.abort then
 		return
 	end
@@ -207,8 +238,10 @@ end
 --- @param cards Cards|fun(): Cards The cards to play or a function to determine the cards to play.
 --- @param expect_loss? boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 3 seconds.
 function Balatest.play_hand(cards, expect_loss)
+	Balatest.wait_for_input(G.STATES.SELECTING_HAND)
+	cards = Balatest.internal.ensure_not_nil(cards)
 	Balatest.q(function()
-		select(type(cards) == "function" and cards() or cards)
+		Balatest.internal.select(cards())
 		if Balatest.internal.abort then
 			return
 		end
@@ -235,15 +268,17 @@ function Balatest.play_hand(cards, expect_loss)
 			return G.STATE == G.STATES.GAME_OVER and G.STATE_COMPLETE
 		end)
 	else
-		Balatest.wait_for_input()
+		Balatest.wait_for_input({ G.STATES.SELECTING_HAND, G.STATES.ROUND_EVAL })
 	end
 end
 
 --- Discards the specified cards.
 --- @param cards Cards|fun(): Cards The cards to discard or a function to determine the cards to discard.
 function Balatest.discard(cards)
+	Balatest.wait_for_input(G.STATES.SELECTING_HAND)
+	cards = Balatest.internal.ensure_not_nil(cards)
 	Balatest.q(function()
-		select(type(cards) == "function" and cards() or cards)
+		Balatest.internal.select(cards())
 		if Balatest.internal.abort then
 			return
 		end
@@ -255,126 +290,144 @@ end
 --- Highlights the specified cards in the specified order.
 --- @param cards Cards|fun(): Cards The cards to highlight or a function to determine the cards to highlight.
 function Balatest.highlight(cards)
+	Balatest.wait_for_input({ G.STATES.SELECTING_HAND, G.STATES.SMODS_BOOSTER_OPENED })
+	cards = Balatest.internal.ensure_not_nil(cards)
 	Balatest.q(function()
-		select(type(cards) == "function" and cards() or cards)
+		Balatest.internal.select(cards())
 	end)
-	Balatest.wait_for_input()
+	Balatest.wait_for_input({ G.STATES.SELECTING_HAND, G.STATES.SMODS_BOOSTER_OPENED })
 end
 
 --- Unhighlights all cards in hand.
 function Balatest.unhighlight_all()
+	Balatest.wait_for_input({ G.STATES.SELECTING_HAND, G.STATES.SMODS_BOOSTER_OPENED })
 	Balatest.q(function()
 		G.hand:unhighlight_all()
 	end)
-	Balatest.wait_for_input()
+	Balatest.wait_for_input({ G.STATES.SELECTING_HAND, G.STATES.SMODS_BOOSTER_OPENED })
 end
 
 --- Uses a consumable.
 --- @param card Card|fun(): Card The card to use or a function to determine the card to use.
---- @param instant nil Deprecated.
-function Balatest.use(card, instant)
-	if instant then
-		if instant ~= 1 then
-			sendWarnMessage(
-				"Instant mode on Balatest.use can cause unintuitive behavior; you likely want to pass a function instead. Suppress this warning by setting instant to 1.",
-				"Balatest"
-			)
-		end
-		G.FUNCS.use_card({ config = { ref_table = card } })
-	else
-		Balatest.q(function()
-			G.FUNCS.use_card({ config = { ref_table = type(card) == "function" and card() or card } })
-		end)
-	end
-	Balatest.wait_for_input(nil, instant)
+function Balatest.use(card)
+	Balatest.wait_for_input()
+	card = Balatest.internal.ensure_not_nil(card)
+	Balatest.q(function()
+		G.FUNCS.use_card({ config = { ref_table = card() } })
+	end)
+	Balatest.wait_for_input()
 end
 
 --- Buys something from the shop.
 --- @param func fun(): Card The function to determine the card to buy.
 function Balatest.buy(func)
+	Balatest.wait_for_input(G.STATES.SHOP)
+	func = Balatest.internal.ensure_not_nil(func)
 	Balatest.q(function()
 		G.FUNCS.buy_from_shop({ config = { ref_table = func() } })
 	end)
-	Balatest.wait_for_input()
+	Balatest.wait(1) -- Wait for ease_dollars() to finish
+	Balatest.wait_for_input(G.STATES.SHOP)
 end
 
 --- Redeems a voucher from the shop.
 --- @param func fun(): SMODS.Voucher The function to determine the voucher to redeem.
 function Balatest.redeem(func)
+	Balatest.wait_for_input(G.STATES.SHOP)
 	Balatest.use(func)
+	Balatest.wait_for_input(G.STATES.SHOP)
+end
+
+--- Waits until the booster pack has been fully opened.
+function Balatest.internal.wait_for_booster()
+	Balatest.q(function()
+		return G.STATE == G.STATES.SMODS_BOOSTER_OPENED
+			and G.STATE_COMPLETE
+			and G.pack_cards
+			and #G.pack_cards.cards > 0
+			and not G.CONTROLLER.locked
+			and not (G.GAME.STOP_USE and G.GAME.STOP_USE > 0)
+	end)
 end
 
 --- Opens a booster from the shop.
 --- @param func fun(): SMODS.Booster The function to determine the booster to open.
 function Balatest.open(func)
+	Balatest.wait_for_input(G.STATES.SHOP)
 	Balatest.use(func)
-	Balatest.wait()
+	Balatest.internal.wait_for_booster()
 end
 
 --- Skips the currently open booster pack.
 function Balatest.skip_booster()
+	Balatest.internal.wait_for_booster()
 	Balatest.q(function()
 		G.FUNCS.skip_booster({})
 	end)
-	Balatest.wait_for_input()
+	Balatest.wait_for_input(G.STATES.SHOP)
 end
 
 --- Sells something.
 --- @param card Card|fun(): Card The card to sell or a function to determine the card to sell.
 function Balatest.sell(card)
+	Balatest.wait_for_input()
+	card = Balatest.internal.ensure_not_nil(card)
 	Balatest.q(function()
-		G.FUNCS.sell_card({ config = { ref_table = type(card) == "function" and card() or card } })
+		G.FUNCS.sell_card({ config = { ref_table = card() } })
 	end)
 	Balatest.wait_for_input()
 end
 
 --- The number of hooks currently active which need to be removed.
 Balatest.internal.hook_count = 0
-local hooks = setmetatable({}, { __mode = "k" })
+local origs = setmetatable({}, { __mode = "k" })
 --- Hooks an arbitrary value. The hook is applied in queue and is reset at the end of the test.
---- @param obj table The object to hook.
+--- @param obj table|fun():table The object to hook.
 --- @param name any The key within the object to hook.
 --- @param new any The new value.
 function Balatest.hook_raw(obj, name, new)
-	local prev = obj[name]
+	obj = Balatest.internal.ensure_not_nil(obj)
+	local cleanup = false
 	Balatest.q(function()
 		if Balatest.internal.abort then
 			return
 		end
-		obj[name] = new
+		origs[obj()] = origs[obj()] or setmetatable({}, { __mode = "k" })
+		if not origs[obj()][name] then
+			origs[obj()][name] = { obj()[name] }
+			Balatest.internal.hook_count = Balatest.internal.hook_count + 1
+			cleanup = true
+		end
+		obj()[name] = new
 	end)
 
-	hooks[obj] = hooks[obj] or {}
-	local cleanup = not hooks[obj][name]
-	if cleanup then
-		Balatest.internal.hook_count = Balatest.internal.hook_count + 1
-		hooks[obj][name] = true
-		local test = Balatest.current_test
-		Balatest.internal.tq(Event({
-			no_delete = true,
-			blocking = false,
-			blockable = false,
-			func = function()
-				if not Balatest.done[test] then
-					return false
-				end
-				obj[name] = prev
-				hooks[obj][name] = nil
+	local test = Balatest.current_test
+	Balatest.internal.tq(Event({
+		no_delete = true,
+		blocking = false,
+		blockable = false,
+		func = function()
+			if not Balatest.done[test] then
+				return false
+			end
+			if cleanup then
+				obj()[name] = origs[obj()][name][1]
+				origs[obj()][name] = nil
 				Balatest.internal.hook_count = Balatest.internal.hook_count - 1
-				return true
-			end,
-		}))
-	end
+			end
+			return true
+		end,
+	}))
 end
 
 --- Hooks a function. The hook is applied in queue and is reset at the end of the test.
---- @param obj table The object to hook.
+--- @param obj table|fun():table The object to hook.
 --- @param name any The key within the object to hook.
---- @param func fun(orig: function, ...) The new function. The original function is passed as the first parameter.
+--- @param func fun(orig: function, ...):... The new function. The original function is passed as the first parameter.
 function Balatest.hook(obj, name, func)
-	local prev = obj[name]
+	local obj2 = Balatest.internal.ensure_not_nil(obj)
 	Balatest.hook_raw(obj, name, function(...)
-		return func(prev, ...)
+		return func(origs[obj2()][name][1], ...)
 	end)
 end
 
@@ -402,7 +455,6 @@ function Balatest.reload()
 		}))
 	end)
 	Balatest.wait_for_input()
-	Balatest.wait(2)
 end
 
 --- Waits for the standard event queue to complete.
