@@ -10,7 +10,7 @@ assert(SMODS.load_file("src/cli.lua"))()
 --- @alias Result {success:true}|{success:false,reason:string?}|{skipped:true,reason:string}
 
 --- Every test registered with `Balatest.TestPlay`.
---- @type TestPlay[]
+--- @type {[string]:TestPlay}
 Balatest.tests = {}
 --- Every test registered with `Balatest.TestPlay`, sorted by mod ID.
 --- @type {[string]:{[string]:boolean}}
@@ -168,7 +168,7 @@ function Balatest.run_test(test, after)
 		return
 	end
 	if not test.name then
-		test.name = "temporary"
+		test.name = "temporary_" .. (#Balatest.test_order + 1)
 	end
 	if not test.run_test then
 		test = Balatest.TestPlay(test)
