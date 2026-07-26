@@ -169,18 +169,28 @@ function Balatest.next_round(with_blind)
 	Balatest.start_round(with_blind)
 end
 
-local suits = {
+--- Suit aliases for selecting cards.
+Balatest.internal.suits = {
 	s = "Spades",
 	S = "Spades",
+	spades = "Spades",
+	Spades = "Spades",
 	h = "Hearts",
 	H = "Hearts",
+	hearts = "Hearts",
+	Hearts = "Hearts",
 	c = "Clubs",
 	C = "Clubs",
+	clubs = "Clubs",
+	Clubs = "Clubs",
 	d = "Diamonds",
 	D = "Diamonds",
+	diamonds = "Diamonds",
+	Diamonds = "Diamonds",
 }
 
-local ranks = {
+--- Rank aliases for selecting cards.
+Balatest.internal.ranks = {
 	["2"] = "2",
 	["3"] = "3",
 	["4"] = "4",
@@ -190,52 +200,103 @@ local ranks = {
 	["8"] = "8",
 	["9"] = "9",
 	["10"] = "10",
-	["T"] = "10",
-	["t"] = "10",
-	["J"] = "Jack",
-	["j"] = "Jack",
-	["Q"] = "Queen",
-	["q"] = "Queen",
-	["K"] = "King",
-	["k"] = "King",
-	["A"] = "Ace",
-	["a"] = "Ace",
+	T = "10",
+	t = "10",
+	Ten = "10",
+	ten = "10",
+	J = "Jack",
+	j = "Jack",
+	Jack = "Jack",
+	jack = "Jack",
+	Q = "Queen",
+	q = "Queen",
+	Queen = "Queen",
+	queen = "Queen",
+	K = "King",
+	k = "King",
+	King = "King",
+	king = "King",
+	A = "Ace",
+	a = "Ace",
+	Ace = "Ace",
+	ace = "Ace",
 	["1"] = "Ace",
 }
 
+--- @alias Selector string|fun(c: Card):boolean A card selector. As a string, it can be a suit, a rank, a rank and suit concatenated, or a center.
+
+---	Turns a selector into a function.
+---@param selector Selector
+---@return fun(c: Card): boolean The selector function.
+---@return string A string describing the selected card.
+function Balatest.internal.autoselector(selector)
+	if type(selector) == "function" then
+		return selector, "Custom selector function"
+	elseif type(selector) == "string" then
+		if Balatest.internal.ranks[selector] then
+			return function(c)
+				return c.base.value == Balatest.internal.ranks[selector]
+			end,
+				"Rank(" .. Balatest.internal.ranks[selector] .. ")"
+		end
+		if Balatest.internal.suits[selector] then
+			return function(c)
+				return c.base.suit == Balatest.internal.suits[selector]
+			end,
+				"Suit(" .. Balatest.internal.suits[selector] .. ")"
+		end
+		for alias, rank in pairs(Balatest.internal.ranks) do
+			local len = alias:len()
+			if selector:sub(1, len) == alias and Balatest.internal.suits[selector:sub(len + 1)] then
+				return function(c)
+					return c.base.suit == Balatest.internal.suits[selector:sub(len + 1)] and c.base.value == rank
+				end,
+					"SuitAndRank(" .. Balatest.internal.suits[selector:sub(len + 1)] .. ", " .. rank .. ")"
+			end
+		end
+		if G.P_CENTERS[selector] then
+			return function(c)
+				return c.config.center.key == selector
+			end, "Center(" .. selector .. ")"
+		end
+	end
+
+	return function()
+		return false
+	end, "InvalidSelector(" .. tostring(selector) .. ")"
+end
+
 --- Selects the specified cards.
---- @param cards Cards the cards to select.
+--- @param cards Selector[] the cards to select.
 function Balatest.internal.select(cards)
 	if Balatest.internal.abort then
 		return
 	end
 	local used = {}
 	for _, v in ipairs(cards) do
-		local rank = ranks[v:sub(1, -2)]
-		local suit = suits[v:sub(-1)]
+		local s, d = Balatest.internal.autoselector(v)
 		local bad = true
 		for k, v in ipairs(G.hand.cards) do
-			if v.base.suit == suit and v.base.value == rank then
+			if s(v) then
 				used[#used + 1] = table.remove(G.hand.cards, k)
 				bad = false
 				break
 			end
 		end
 		if bad then
-			Balatest.internal.abort = "A card (" .. v .. ") was not in hand, but it needed to be played."
+			Balatest.internal.abort = Balatest.internal.abort
+				or ("A card was not in hand (" .. d .. "), but it needed to be played.")
 		end
 	end
-	for k, v in ipairs(used) do
+	for _, v in ipairs(used) do
 		G.hand.cards[#G.hand.cards + 1] = v
 		G.hand:add_to_highlighted(v, true)
 	end
 	G.hand:align_cards()
 end
 
---- @alias Cards string[]
-
 --- Plays a hand with the specified cards in the specified order.
---- @param cards Cards|fun(): Cards The cards to play or a function to determine the cards to play.
+--- @param cards Selector[]|fun(): Selector[] The cards to play or a function to determine the cards to play.
 --- @param expect_loss? boolean|number Set this to `true` if this hand should lose the run. Set it to a number to change the timeout length from the default of 3 seconds.
 function Balatest.play_hand(cards, expect_loss)
 	Balatest.wait_for_input(G.STATES.SELECTING_HAND)
@@ -273,7 +334,7 @@ function Balatest.play_hand(cards, expect_loss)
 end
 
 --- Discards the specified cards.
---- @param cards Cards|fun(): Cards The cards to discard or a function to determine the cards to discard.
+--- @param cards Selector[]|fun(): Selector[] The cards to discard or a function to determine the cards to discard.
 function Balatest.discard(cards)
 	Balatest.wait_for_input(G.STATES.SELECTING_HAND)
 	cards = Balatest.internal.ensure_not_nil(cards)
@@ -288,7 +349,7 @@ function Balatest.discard(cards)
 end
 
 --- Highlights the specified cards in the specified order.
---- @param cards Cards|fun(): Cards The cards to highlight or a function to determine the cards to highlight.
+--- @param cards Selector[]|fun(): Selector[] The cards to highlight or a function to determine the cards to highlight.
 function Balatest.highlight(cards)
 	Balatest.wait_for_input({ G.STATES.SELECTING_HAND, G.STATES.SMODS_BOOSTER_OPENED })
 	cards = Balatest.internal.ensure_not_nil(cards)
