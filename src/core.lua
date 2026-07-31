@@ -7,7 +7,7 @@ assert(SMODS.load_file("src/events.lua"))()
 assert(SMODS.load_file("src/assertions.lua"))()
 assert(SMODS.load_file("src/cli.lua"))()
 
---- @alias Result {success:true}|{success:false,reason:string?}|{skipped:true,reason:string}
+--- @alias Result {success:true}|{success:false,reason:string?}|{skipped:true,reason:string?}
 
 --- Every test registered with `Balatest.TestPlay`.
 --- @type {[string]:TestPlay}
@@ -45,10 +45,17 @@ Balatest.internal.kill = nil
 --- @param mod? string The mod to run tests from.
 --- @param category? string The category to run tests from.
 --- @param after? fun(test_name: string, result: Result) The result handler for these tests. If unset, defaults to a simple logger.
+--- @overload fun(tests: (string|TestPlay)[], after?: fun(test_name: string, result: Result))
 function Balatest.run_tests(mod, category, after)
+	---@type (TestPlay|string)[]
 	local todo = {}
 	local allowed = nil
-	if category then
+	local no_mangle = false
+	if mod and type(mod) == "table" and mod[1] and type(category) ~= "string" then
+		allowed = mod
+		after = category
+		no_mangle = true
+	elseif category then
 		if not mod then
 			sendErrorMessage("No mod provided for categories. Aborting.", "Balatest")
 			return
@@ -78,21 +85,24 @@ function Balatest.run_tests(mod, category, after)
 
 	if not allowed then
 		todo = Balatest.test_order
-	else
+	elseif not no_mangle then
 		for _, v in ipairs(Balatest.test_order) do
 			if allowed[v] then
 				todo[#todo + 1] = v
 			end
 		end
+	else
+		todo = allowed
 	end
 
 	local skip_count = 0
 	local real_todo = {}
 	for _, v in ipairs(todo) do
+		v = type(v) == "string" and Balatest.tests[v] or v
 		local should_skip = Balatest.should_skip(v)
 		if should_skip then
 			skip_count = skip_count + 1
-			Balatest.done[Balatest.tests[v].name] = { skipped = true, reason = should_skip }
+			Balatest.done[v.name] = { skipped = true, reason = should_skip }
 		else
 			real_todo[#real_todo + 1] = v
 		end
@@ -107,7 +117,7 @@ function Balatest.run_tests(mod, category, after)
 		"Balatest"
 	)
 	for _, v in ipairs(todo) do
-		Balatest.run_test(Balatest.tests[v], after)
+		Balatest.run_test(v, after)
 	end
 	Balatest.internal.tq(Event({
 		blocking = false,
@@ -120,9 +130,10 @@ function Balatest.run_tests(mod, category, after)
 			local pass, fail = 0, 0
 			skip_count = 0
 			for _, v in ipairs(todo) do
-				if Balatest.done[v].skipped then
+				local d = Balatest.done[v.name]
+				if d.skipped then
 					skip_count = skip_count + 1
-				elseif Balatest.done[v].success then
+				elseif d.success then
 					pass = pass + 1
 				else
 					fail = fail + 1

@@ -54,10 +54,10 @@ function Balatest.TestPlay(settings)
 end
 
 --- Tests whether a test should be skipped.
---- @param t string The test to consider.
+--- @param t string|TestPlay The test to consider.
 --- @return string? `nil`, or the reason why this test should be skipped.
 function Balatest.should_skip(t)
-	local test = Balatest.tests[t]
+	local test = type(t) == "string" and Balatest.tests[t] or t
 	if test.skip then
 		local r = test.skip()
 		if r then
