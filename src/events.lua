@@ -481,6 +481,74 @@ function Balatest.hook_raw(obj, name, new)
 	}))
 end
 
+--- Gets an upvalue by name.
+---@param f function The function the check.
+---@param name string The name of the upvalue.
+---@return any The upvalue.
+---@return integer The index of the upvalue.
+function Balatest.internal.getupvalue(f, name)
+	local i = 1
+	local k, v = debug.getupvalue(f, i)
+	while k do
+		if k == name then
+			return v, i
+		end
+		i = i + 1
+		k, v = debug.getupvalue(f, i)
+	end
+	return nil, -1
+end
+
+--- Sets an upvalue by name.
+---@param f function The function to update.
+---@param name string The name of the upvalue.
+---@param new any The upvalue.
+---@return boolean Whether an upvalue was set.
+function Balatest.internal.setupvalue(f, name, new)
+	local _, i = Balatest.internal.getupvalue(f, name)
+	debug.setupvalue(f, i, new)
+	return i ~= -1
+end
+
+local orig_ups = setmetatable({}, { __mode = "k" })
+--- Hooks an arbitrary upvalue. The hook is applied in queue and is reset at the end of the test.
+--- @param f function The function to hook.
+--- @param name string The name of the upvalue to hook.
+--- @param new any The new value.
+function Balatest.hook_raw_upvalue(f, name, new)
+	local cleanup = false
+	Balatest.q(function()
+		if Balatest.internal.abort then
+			return
+		end
+		orig_ups[f] = orig_ups[f] or setmetatable({}, { __mode = "k" })
+		if not orig_ups[f][name] then
+			orig_ups[f][name] = { Balatest.internal.getupvalue(f, name) }
+			Balatest.internal.hook_count = Balatest.internal.hook_count + 1
+			cleanup = true
+		end
+		Balatest.internal.setupvalue(f, name, new)
+	end)
+
+	local test = Balatest.current_test
+	Balatest.internal.tq(Event({
+		no_delete = true,
+		blocking = false,
+		blockable = false,
+		func = function()
+			if not Balatest.done[test] then
+				return false
+			end
+			if cleanup then
+				Balatest.internal.setupvalue(f, name, orig_ups[f][name][1])
+				orig_ups[f][name] = nil
+				Balatest.internal.hook_count = Balatest.internal.hook_count - 1
+			end
+			return true
+		end,
+	}))
+end
+
 --- Hooks a function. The hook is applied in queue and is reset at the end of the test.
 --- @param obj table|fun():table The object to hook.
 --- @param name any The key within the object to hook.
@@ -489,6 +557,16 @@ function Balatest.hook(obj, name, func)
 	local obj2 = Balatest.internal.ensure_not_nil(obj)
 	Balatest.hook_raw(obj, name, function(...)
 		return func(origs[obj2()][name][1], ...)
+	end)
+end
+
+--- Hooks an upvalue that is a function. The hook is applied in queue and is reset at the end of the test.
+--- @param f function The function to hook.
+--- @param name string The name of the upvalue to hook.
+--- @param func fun(orig: function, ...):... The new function. The original function is passed as the first parameter.
+function Balatest.hook_upvalue(f, name, func)
+	Balatest.hook_raw_upvalue(f, name, function(...)
+		return func(orig_ups[f][name][1], ...)
 	end)
 end
 

@@ -34,6 +34,8 @@ Balatest also provides some pre-built events for you (each of these adds to the 
 - `Balatest.sell(func)` sells a card. E.g. `Balatest.sell(function() return G.jokers.cards[1] end)`
 - `Balatest.hook(obj, name, func)` hooks a function until the test concludes. See below for more information.
 - `Balatest.hook_raw(obj, name, new)` overwrites an object until the test concludes.
+- `Balatest.hook_upvalue(f, name, func)` hooks an upvalue that is itself a function.
+- `Balatest.hook_raw_upvalue(f, name, new)` hooks an upvalue with a new value.
 - `Balatest.wait_for_input(state, front)` waits until the game will accept input.
 - `Balatest.reload()` saves and loads the game as if by returning to the main menu.
 - `Balatest.wait(depth)` waits until everything currently in the standard event queue completes, optionally multiple times.
