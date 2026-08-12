@@ -428,6 +428,13 @@ function Balatest.skip_booster()
 	Balatest.wait_for_input(G.STATES.SHOP)
 end
 
+--- Rerolls the shop.
+function Balatest.reroll_shop()
+	Balatest.wait_for_input(G.STATES.SHOP)
+	Balatest.q(G.FUNCS.reroll_shop)
+	Balatest.wait_for_input(G.STATES.SHOP)
+end
+
 --- Sells something.
 --- @param card Card|fun(): Card The card to sell or a function to determine the card to sell.
 function Balatest.sell(card)
